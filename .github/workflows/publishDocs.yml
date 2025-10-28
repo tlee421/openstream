@@ -6,7 +6,7 @@ on:
       - main
       - docs
       - lecorre
-
+    
   workflow_dispatch:
     inputs:
         logLevel:
