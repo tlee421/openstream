@@ -322,9 +322,6 @@ function solver(solveINIT)
             
         end
 
-        % Compute and store dry fraction for base film for this time step
-        % Use the existing method FDRY(base, drop) which returns fdry for all z
-            base(tIdx).FDRY_ = base(tIdx).FDRY(drop(tIdx));
        
        
         
