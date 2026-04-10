@@ -111,6 +111,11 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
                     coefs = [320 0 0.0310 2.3 0.0675 1.2];
                     ment  = absfilm.OKAWAMENT(zIdx, coefs);
 
+                case InputEnums.ENTRAINMENT.OKAWAMFVAL
+                    % Modified Okawa et al. (2004) with Rodarte (2015) data for MFVAL test facility
+                    coefs = [320 0 0.0310 2.3 0.0387 0.39];
+                    ment  = absfilm.OKAWAMENT(zIdx, coefs);
+                    
                 case InputEnums.ENTRAINMENT.OKAWAGEN
                     % Generic Okawa model
                     coefs = model.OKAWACOEFS;

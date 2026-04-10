@@ -20,10 +20,11 @@ classdef ENTRAINMENT
 
     enumeration
         NONE                 % No entrainment
-        GOVAN                % Hewitt and Govan (1990) entrainment model
-        OKAWA2003            % Okawa et al. (2003) entrainment model
-        OKAWA2004            % Okawa et al. (2004) entrainment model
-        OKAWA2004MOD         % Modified Okawa et al. (2004) model (from Adamsson and Le Corre, 2011)
-        OKAWAGEN             % Generic Okawa-based entrainment model using OKAWACOEFS
+        GOVAN                % Hewitt and Govan (1990)
+        OKAWA2003            % Okawa et al. (2003)
+        OKAWA2004            % Okawa et al. (2004)
+        OKAWA2004MOD         % Modified Okawa et al. (2004) from Adamsson and Le Corre (2011)
+        OKAWAMFVAL           % Modified Okawa et al. (2004) with Rodarte (2015) data from MFVAL test facility
+        OKAWAGEN             % Generic Okawa model
     end
 end

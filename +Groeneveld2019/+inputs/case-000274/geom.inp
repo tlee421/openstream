@@ -1,0 +1,6 @@
+ID         ! Channel ID                                                     > GROENEVELD2019
+LENGTH     ! Axial length [m]                                               > 3.80000000000
+AREA       ! Coolant area [m^2]                                             > 0.00008494900
+PERIM      ! Perimeters [m]                                                 > 0.03267300000
+END
+

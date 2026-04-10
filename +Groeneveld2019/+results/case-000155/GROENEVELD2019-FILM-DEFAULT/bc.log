@@ -1,0 +1,22 @@
+
+
+--------------------------------------------- Mixture solver run initiated ---------------------------------------------
+
+Solve steady-state ...
+Time  1.00 [s]	max point iter =   5 in node  15, max errors: W = 0.0000000 [kg/s], P = 0.09679 [Pa], H = 0.05837 [J/kg]                    Time  2.00 [s]	max point iter =   4 in node  42, max errors: W = 0.0000001 [kg/s], P = 0.09553 [Pa], H = 0.01639 [J/kg]                    Time  3.00 [s]	max point iter =   3 in node   7, max errors: W = 0.0000000 [kg/s], P = 0.00077 [Pa], H = 0.00039 [J/kg]                    Time  4.00 [s]	max point iter =   3 in node  11, max errors: W = 0.0000000 [kg/s], P = 0.08906 [Pa], H = 0.06343 [J/kg]                    Time  5.00 [s]	max point iter =   3 in node  31, max errors: W = 0.0000000 [kg/s], P = 0.09337 [Pa], H = 0.06205 [J/kg]                    Time  6.00 [s]	max point iter =   3 in node  94, max errors: W = 0.0000000 [kg/s], P = 0.09811 [Pa], H = 0.09362 [J/kg]                    Time  7.00 [s]	max point iter =   2 in node  65, max errors: W = 0.0000000 [kg/s], P = 0.01748 [Pa], H = 0.09582 [J/kg]                    
+		STEADY-STATE CONVERGED            max errors: W = 0.0000000 [kg/s], P = 0.02128 [Pa], H = 0.36848 [J/kg]
+Elapsed time: 0.89 sec
+
+--------------------------------------------- Mixture solver run completed ---------------------------------------------
+
+
+
+------------------------------------------- Three-field solver run initiated -------------------------------------------
+
+Solve steady-state ...
+Time  1.00 [s]	max point iter =  25 in node  66, max errors: Wf = 0.0000996 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    Time  2.00 [s]	max point iter =  15 in node  90, max errors: Wf = 0.0000997 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    Time  3.00 [s]	max point iter =   5 in node  87, max errors: Wf = 0.0001000 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    Time  4.00 [s]	max point iter =   1 in node   2, max errors: Wf = 0.0000993 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    
+		STEADY-STATE CONVERGED            max errors: Wf = 0.0000993 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]
+Elapsed time: 0.53 sec
+
+------------------------------------------- Three-field solver run completed -------------------------------------------
+

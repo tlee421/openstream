@@ -1,0 +1,5 @@
+ID         ! Option ID                                                      > DEFAULT
+SSMAXITER  ! Max number of steady-state iterations                          > 50.00000000000
+RELAXWF    ! Relaxation factor for the film mass conservation equation [-]  > 0.20000000000
+END
+

@@ -68,6 +68,8 @@ classdef Base < Solvers.AbstractFilm
                 base.W = repmat(base.W,film.NZ,base.inputSet.geometry.NWALL);
                 base.U = repmat(base.U,film.NZ,base.inputSet.geometry.NWALL);
                 base.H = repmat(base.H,film.NZ,base.inputSet.geometry.NWALL);
+                % Initialize FDRY_ storage (one value per z and wall)
+                base.FDRY_ = repmat(base.FDRY_,film.NZ,base.inputSet.geometry.NWALL);
             end
         end
 
@@ -600,7 +602,7 @@ classdef Base < Solvers.AbstractFilm
 
                 % TODO: copy film?
                 % Copy properties
-                propNames = {'W','U','H'};
+                propNames = {'W','U','H','FDRY_'};
                 for j = 1:length(propNames)
                     if opts.all
                         targetObj(1).(propNames{j}) = srcObj.(propNames{j});

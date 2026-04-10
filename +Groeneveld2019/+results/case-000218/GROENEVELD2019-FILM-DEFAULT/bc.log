@@ -1,0 +1,22 @@
+
+
+--------------------------------------------- Mixture solver run initiated ---------------------------------------------
+
+Solve steady-state ...
+Time  1.00 [s]	max point iter =   6 in node  86, max errors: W = 0.0000000 [kg/s], P = 0.09503 [Pa], H = 0.08328 [J/kg]                    Time  2.00 [s]	max point iter =   5 in node  63, max errors: W = 0.0000000 [kg/s], P = 0.09315 [Pa], H = 0.02876 [J/kg]                    Time  3.00 [s]	max point iter =   4 in node  60, max errors: W = 0.0000001 [kg/s], P = 0.09613 [Pa], H = 0.01592 [J/kg]                    Time  4.00 [s]	max point iter =   3 in node  59, max errors: W = 0.0000001 [kg/s], P = 0.08597 [Pa], H = 0.04159 [J/kg]                    Time  5.00 [s]	max point iter =   3 in node  59, max errors: W = 0.0000000 [kg/s], P = 0.01141 [Pa], H = 0.09115 [J/kg]                    Time  6.00 [s]	max point iter =   3 in node  59, max errors: W = 0.0000000 [kg/s], P = 0.00108 [Pa], H = 0.07907 [J/kg]                    Time  7.00 [s]	max point iter =   3 in node  59, max errors: W = 0.0000000 [kg/s], P = 0.00009 [Pa], H = 0.08711 [J/kg]                    Time  8.00 [s]	max point iter =   3 in node  93, max errors: W = 0.0000000 [kg/s], P = 0.09899 [Pa], H = 0.09182 [J/kg]                    Time  9.00 [s]	max point iter =   2 in node  84, max errors: W = 0.0000000 [kg/s], P = 0.06728 [Pa], H = 0.09980 [J/kg]                    
+		STEADY-STATE CONVERGED            max errors: W = 0.0000000 [kg/s], P = 0.07588 [Pa], H = 0.22374 [J/kg]
+Elapsed time: 1.01 sec
+
+--------------------------------------------- Mixture solver run completed ---------------------------------------------
+
+
+
+------------------------------------------- Three-field solver run initiated -------------------------------------------
+
+Solve steady-state ...
+Time  1.00 [s]	max point iter =  20 in node  90, max errors: Wf = 0.0000996 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    Time  2.00 [s]	max point iter =   8 in node 100, max errors: Wf = 0.0000993 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    Time  3.00 [s]	max point iter =   1 in node   2, max errors: Wf = 0.0000991 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    
+		STEADY-STATE CONVERGED            max errors: Wf = 0.0000991 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]
+Elapsed time: 0.17 sec
+
+------------------------------------------- Three-field solver run completed -------------------------------------------
+
