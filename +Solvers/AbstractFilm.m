@@ -115,6 +115,18 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
                     % Modified Okawa et al. (2004) with Rodarte (2015) data for MFVAL test facility
                     coefs = [320 0 0.0310 2.3 0.0387 0.39];
                     ment  = absfilm.OKAWAMENT(zIdx, coefs);
+                
+                case InputEnums.ENTRAINMENT.OKAWACT
+                    % Modified Okawa et al. (2004) based on fit from Ciancolini and
+                    % Thome Correlation (2012)
+                    coefs = [320 0 0.000334 0.908];
+                    ment  = absfilm.OKAWAMENT(zIdx, coefs);
+
+                case InputEnums.ENTRAINMENT.OKAWARD
+                    % Modified Okawa et al. (2004) based on fit for
+                    % refrigerants from Rodarte (2015)
+                    coefs = [320 0 0.00021 0.8496];
+                    ment  = absfilm.OKAWAMENT(zIdx, coefs);
                     
                 case InputEnums.ENTRAINMENT.OKAWAGEN
                     % Generic Okawa model

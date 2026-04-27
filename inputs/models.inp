@@ -111,7 +111,7 @@ END
 
 ID         ! Model ID                                                       > MFVALS
 FLUID      ! Fluid ID                                                       > R245fa
-OAFENTRAINED !                                                              > RATIO
+OAFENTRAINED !                                                              > EQUILIBRIUM
 OAFDROPRATIO ! Drop/Liquid mass flow ratio at onset of annular flow         > 0.01
 DEPOSITION !                                                                > OKAWA
 ENTRAINMENT !                                                               > OKAWAMFVAL
