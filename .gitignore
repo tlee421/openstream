@@ -2,9 +2,6 @@
 
 outputs/
 
-sandbox/
-!sandbox/*.md
-!sandbox/*_default.m
 docs/build/**
 docs/make.log
 docs/**/*.aux
