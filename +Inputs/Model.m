@@ -148,6 +148,10 @@ classdef Model < Inputs.Input
         WAVEDRAGCOEF     (:,1) double  {mustBeNumeric}                     = [0.02 1.350E5 0.437]            % Wave drag coefficient [-]
         THINWAVETHICK    (1,1) double  {mustBePositive}                    = 1E-5                            % Minimum thin wave thickness [m]
 
+        % Obstruction solver models
+        
+        OBSWSPLITRATIO   (2,1) double  {mustBeNonnegative}                 = [0.0133 0.0005]                 % Split ratio of mass downstream of obstruction (wake region ratio is 2nd term) [kg/s]
+
     end
 
     properties (Constant)
