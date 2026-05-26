@@ -13,5 +13,7 @@ classdef THINFILMFRIC
     enumeration
         LAMINAR              % Laminar thin film friction model
         TURBULENT            % Turbulent thin film friction model
+        TRANSITION           % User defined transition from laminar to turbulent thin film friction models
+        TRACE                % Wall friction model for annular flows utilized in TRACE 
     end
 end

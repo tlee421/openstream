@@ -119,13 +119,13 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
                 case InputEnums.ENTRAINMENT.OKAWACT
                     % Modified Okawa et al. (2004) based on fit from Ciancolini and
                     % Thome Correlation (2012)
-                    coefs = [320 0 0.000334 0.908];
+                    coefs = [320 0 0.0310 2.3 0.0386 0.908];
                     ment  = absfilm.OKAWAMENT(zIdx, coefs);
 
                 case InputEnums.ENTRAINMENT.OKAWARD
                     % Modified Okawa et al. (2004) based on fit for
                     % refrigerants from Rodarte (2015)
-                    coefs = [320 0 0.00021 0.8496];
+                    coefs = [320 0 0.0310 2.3 0.0319 0.8496];
                     ment  = absfilm.OKAWAMENT(zIdx, coefs);
                     
                 case InputEnums.ENTRAINMENT.OKAWAGEN
@@ -154,7 +154,9 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
 
             model = absfilm.inputSet.model;
-            C = 0.005;                                                     % Constant friction factor
+            C = 0.005;                                                     % [-]  Wall Friction constant
+            Re_transition = model.RETRANSITION;                            % [-]  Reynolds number at which transition to turbulence is assumed
+            f_w_lam = model.FWLAM;                                         % Factor in numerator in laminar wall friction calculation
 
             switch model.THINFILMFRIC
                 case InputEnums.THINFILMFRIC.TURBULENT
@@ -164,6 +166,20 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
                 case InputEnums.THINFILMFRIC.LAMINAR
                     %
                     Cw = absfilm.CW_LAM_CALC(zIdx, C);                     % Call private method
+
+                case InputEnums.THINFILMFRIC.TRANSITION
+                    RE = max(absfilm.RE(zIdx), 1E-6);
+                    if RE < Re_transition
+                        Cw = f_w_lam./RE;                                  % Laminar wall friction factor
+                    else
+                        Cw = (3.6 * log10(6.9./RE)).^(-2);                  % Colebrook equation for turbulent wall friction factor
+                    end 
+                case InputEnums.THINFILMFRIC.TRACE
+                    RE = max(absfilm.RE(zIdx), 1E-6);                      % [-] Film Reynolds number
+                    f_lam = f_w_lam./RE;                                   %Laminar wall friction factor for pipe flow
+                    f_turb = (3.6 * log10(6.9./RE)).^(-2);                 %Turbulent friction factor for a smooth pipe according to Haalands approximation of the Colebrook equation:
+                                                                           %S.E. Haaland, "Simple and Explicit Formulas for the Friction Factor in Turbulent Pipe Flow," J. Fluids Eng., 105, 89-90, 1983.
+                    Cw = (f_lam.^3 + f_turb.^3).^(1/3);                    %TRACE model for annular flow friction factor. 
             end
 
             Cw  = absfilm.mix.AFDISTR(C,Cw,zIdx);
@@ -225,6 +241,11 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
                     %
                     thick = abs(absfilm.THICK(zIdx));                      % [m] Film thickness
                     Cv = absfilm.CV_WALLISTHICK_CALC(thick,C);             % Call private method
+
+                case InputEnums.VAPORFRIC.SMOOTH
+                    Re_vap = absfilm.mix.vapor.RE(zIdx);                   %Vapor Reynolds Number
+                    Cv = (3.6 * log10(6.9./Re_vap)).^(-2);                 %Turbulent friction factor for a smooth pipe according to Haalands approximation of the Colebrook equation:
+                                                                           %S.E. Haaland, "Simple and Explicit Formulas for the Friction Factor in Turbulent Pipe Flow," J. Fluids Eng., 105, 89-90, 1983.
             end
 
             Cv  = absfilm.mix.AFDISTR(0,Cv,zIdx);                          % [-]

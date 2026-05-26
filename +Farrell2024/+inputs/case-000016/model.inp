@@ -1,0 +1,15 @@
+ID         ! Identifier for the model configuration                         > DEFAULT
+OAFENTRAINED! Entrained drop model at onset of annular flow selected from :class:`InputEnums.OAFENTRAINED`> EQUILIBRIUM
+OAFDROPRATIO! Drop/Liquid mass ratio at onset of annular flow [-]            > 0.00001000000
+DEPOSITION ! Drop deposition model selected from :class:`InputEnums.DEPOSITION`> OKAWA
+ENTRAINMENT! Film entrainment model selected from :class:`InputEnums.ENTRAINMENT`> OKAWACT
+MOMENTFILM ! Film momentum conservation model selected from :class:`InputEnums.MOMENTFILM`> ALGEBRAIC
+THINFILMFRIC! Thin film wall friction model selected from :class:`InputEnums.THINFILMFRIC`> TRACE
+THINFILMTHICK! Minimum thin film thickness [m]                                > 0.00000000500
+VAPORFRIC  ! Vapor friction model selected from :class:`InputEnums.VAPORFRIC`> WALLISTHICK
+RETRANSITION! Reynolds number at which wall friction factor transitions from laminar to turbulent> 1000.00000000000
+VAPORFRICCST! Vapor friction constant [-]                                    > 0.00500000000
+NNODES     !                                                                > 100.00000000000
+FLUID      ! CoolProp fluid identifier                                      > R245FA
+END
+

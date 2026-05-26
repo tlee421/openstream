@@ -16,6 +16,7 @@ classdef VAPORFRIC
         CONSTANT             % Constant friction coefficient
         WALLIS               % Wallis model (based on void fraction)
         WALLISTHICK          % Wallis model (based on film thickness)
+        SMOOTH               % Karman-Nikrudase model for smooth pipe friction factor
         SOLVER_DEPENDENT     % Solver-dependent model selection
     end
 end

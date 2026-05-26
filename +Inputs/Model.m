@@ -118,7 +118,9 @@ classdef Model < Inputs.Input
         VAPORFRIC        (1,1) InputEnums.VAPORFRIC                        = 'SOLVER_DEPENDENT'              % Vapor friction model selected from :class:`InputEnums.VAPORFRIC`
         VAPORFRICCST     (1,1) double  {mustBePositive}                    = 0.005                           % Vapor friction constant [-]
         THINFILMFRIC     (1,1) InputEnums.THINFILMFRIC                     = 'TURBULENT'                     % Thin film wall friction model selected from :class:`InputEnums.THINFILMFRIC`
+        RETRANSITION     (1,1) double  {mustBePositive}                    = 2300                            % Reynolds number at which wall friction factor transitions from laminar to turbulent
         THINFILMTHICK    (1,1) double  {mustBePositive}                    = 1E-4                            % Minimum thin film thickness [m]
+        FWLAM            (1,1) double  {mustBePositive}                    = 16                              % Numerator in laminar wall friction equation [m]
 
         MOMENTDROP       (1,1) InputEnums.MOMENTDROP                       = 'SLIP'                          % Drop momentum conservation model selected from :class:`InputEnums.MOMENTDROP`
         DROPSLIP         (1,1) double  {mustBePositive}                    = 1.0                             % Drop/vapor velocity ratio [-]

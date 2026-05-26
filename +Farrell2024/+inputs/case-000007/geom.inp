@@ -1,0 +1,6 @@
+ID         ! Channel identifier                                             > FARRELL2024
+LENGTH     ! Axial length [m]                                               > 0.40300000000
+AREA       ! Coolant area [m^2]                                             > 0.00043200000
+PERIM      ! Perimeter(s) of the channel walls [m]                          > 0.09600000000
+END
+

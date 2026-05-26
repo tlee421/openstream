@@ -15,12 +15,12 @@ END
 ID        ! Channel ID                     > MFVAL_dev
 LENGTH    ! Axial length [m]               > 3.225
 AREA      ! Coolant area [m^2]             > 4.3200e-04
-PERIM     ! Perimeters [m]                 > 0.036 0.036 0.024
+PERIM     ! Perimeters [m]                 > 0.096
 ANGLE     ! Angle [rad]                    > 0
 END
 
 ID        ! Channel ID                     > MFVAL_pre_obs
-LENGTH    ! Axial length [m]               > 0.42
+LENGTH    ! Axial length [m]               > 0.403
 AREA      ! Coolant area [m^2]             > 4.3200e-04
 PERIM     ! Perimeters [m]                 > 0.096
 ANGLE     ! Angle [rad]                    > 0

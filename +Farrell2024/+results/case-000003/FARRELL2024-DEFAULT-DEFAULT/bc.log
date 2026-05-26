@@ -1,0 +1,22 @@
+
+
+--------------------------------------------- Mixture solver run initiated ---------------------------------------------
+
+Solve steady-state ...
+Time  1.00 [s]	max point iter =   3 in node   2, max errors: W = 0.0000000 [kg/s], P = 0.04368 [Pa], H = 0.00011 [J/kg]                    Time  2.00 [s]	max point iter =   2 in node   3, max errors: W = 0.0000000 [kg/s], P = 0.09589 [Pa], H = 0.04097 [J/kg]                    Time  3.00 [s]	max point iter =   2 in node  35, max errors: W = 0.0000000 [kg/s], P = 0.00006 [Pa], H = 0.09824 [J/kg]                    Time  4.00 [s]	max point iter =   1 in node   2, max errors: W = 0.0000000 [kg/s], P = 0.00002 [Pa], H = 0.02280 [J/kg]                    
+		STEADY-STATE CONVERGED            max errors: W = 0.0000000 [kg/s], P = 0.00002 [Pa], H = 0.02280 [J/kg]
+Elapsed time: 1.37 sec
+
+--------------------------------------------- Mixture solver run completed ---------------------------------------------
+
+
+
+------------------------------------------- Three-field solver run initiated -------------------------------------------
+
+Solve steady-state ...
+Time  1.00 [s]	max point iter =   1 in node   2, max errors: Wf = 0.0000238 [kg/s/m], Uf = 0.00006 [m/s], Ud = 0.00000 [m/s]                    
+		STEADY-STATE CONVERGED            max errors: Wf = 0.0000238 [kg/s/m], Uf = 0.00006 [m/s], Ud = 0.00000 [m/s]
+Elapsed time: 0.06 sec
+
+------------------------------------------- Three-field solver run completed -------------------------------------------
+
