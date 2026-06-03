@@ -94,7 +94,7 @@ OAF        ! Onset of annular flow model                                    > WA
 OAFENTRAINED !                                                              > RATIO
 OAFBASERATIO !                                                              > 0.2
 OAFFILMSPLIT !                                                              > RATIO
-THINFILMFRIC !                                                              > LAMINAR
+THINFILMFRIC !                                                              > TRACE
 MOMENTFILM !                                                                > ALGEBRAIC
 MOMENTBASE !                                                                > FULL
 MOMENTWAVE !                                                                > FULL
