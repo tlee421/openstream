@@ -1,4 +1,8 @@
 ID          !                                                              > DEFAULT
+ERRORWF     !                                                              > 1E-4
+SSCONFWF    !                                                              > 1E-4
+MAXITER     !                                                              > 100
+RELAXUF     !                                                              > 0.1
 END
 
 ID          !                                                              > STEADY

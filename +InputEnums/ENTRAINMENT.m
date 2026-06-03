@@ -25,6 +25,8 @@ classdef ENTRAINMENT
         OKAWA2004            % Okawa et al. (2004)
         OKAWA2004MOD         % Modified Okawa et al. (2004) from Adamsson and Le Corre (2011)
         OKAWAMFVAL           % Modified Okawa et al. (2004) with Rodarte (2015) data from MFVAL test facility
+        OKAWACT              % Modified Okawa et al. (2004) based on fit from Ciancolini and Thome Correlation (2012)
+        OKAWARD              % Modified Okawa et al. (2004) based on fit for refrigerants from Rodarte (2015)
         OKAWAGEN             % Generic Okawa model
     end
 end
