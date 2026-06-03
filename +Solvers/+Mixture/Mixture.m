@@ -51,7 +51,8 @@ classdef Mixture < Solvers.AbstractField
         DZ             (1,1) double  {mustBeNumeric}                       = 0                    % Axial step size [m]
         inputSet                     {isa(inputSet,'Inputs.InputSet')}                            % :class:`Inputs.InputSet` object
         fluid                        {isa(fluid,'Inputs.FluidProperties')}                        % :class:`Inputs.FluidProperties` object
-
+        mixFull
+        solver
     end
 
     properties (SetAccess={?Solvers.AbstractSolver, ?Solvers.AbstractField}, GetAccess=?Solvers.AbstractField)
@@ -133,7 +134,12 @@ classdef Mixture < Solvers.AbstractField
             % - val — New mass flow rate [kg/s]
 
             % Identify indexes to be updated
-            zIdx = find(mix.W~=val);
+            % Handle size mismatch during subsetting (sizes must match for element-wise comparison)
+            if numel(mix.W) == numel(val)
+                zIdx = find(mix.W~=val);
+            else
+                zIdx = (1:length(val)).';
+            end
             if isempty(zIdx), zIdx = (1:mix(1).NZ).'; end
 
             % Set mix.W value
@@ -156,7 +162,12 @@ classdef Mixture < Solvers.AbstractField
             % - val — New enthalpy [J/kg]
 
             % Identify indexes to be updated
-            zIdx = find(mix.H~=val);
+            % Handle size mismatch during subsetting (sizes must match for element-wise comparison)
+            if numel(mix.H) == numel(val)
+                zIdx = find(mix.H~=val);
+            else
+                zIdx = (1:length(val)).';
+            end
             if isempty(zIdx), zIdx = (1:mix(1).NZ).'; end
 
             % Set mix.H value
@@ -180,6 +191,9 @@ classdef Mixture < Solvers.AbstractField
 
             if nargin < 2
                 mflux = mix.mflux;
+                if numel(mflux) > mix.NZ
+                    mflux = mflux(1:mix.NZ);
+                end
             else
                 mflux = mix.mflux(zIdx);
             end
@@ -199,6 +213,9 @@ classdef Mixture < Solvers.AbstractField
 
             if nargin < 2
                 xeq = mix.xeq;
+                if numel(xeq) > mix.NZ
+                    xeq = xeq(1:mix.NZ);
+                end
             else
                 xeq = mix.xeq(zIdx);
             end
@@ -218,6 +235,9 @@ classdef Mixture < Solvers.AbstractField
 
             if nargin < 2
                 x = mix.x;
+                if numel(x) > mix.NZ
+                    x = x(1:mix.NZ);
+                end
             else
                 x = mix.x(zIdx);
             end
@@ -237,6 +257,9 @@ classdef Mixture < Solvers.AbstractField
 
             if nargin < 2
                 vf = mix.vf;
+                if numel(vf) > mix.NZ
+                    vf = vf(1:mix.NZ);
+                end
             else
                 vf = mix.vf(zIdx);
             end
@@ -313,6 +336,9 @@ classdef Mixture < Solvers.AbstractField
 
             if nargin < 2
                 rho = mix.rho;
+                if numel(rho) > mix.NZ
+                    rho = rho(1:mix.NZ);
+                end
             else
                 rho = mix.rho(zIdx);
             end
@@ -332,6 +358,9 @@ classdef Mixture < Solvers.AbstractField
 
             if nargin < 2
                 up = mix.up;
+                if numel(up) > mix.NZ
+                    up = up(1:mix.NZ);
+                end
             else
                 up = mix.up(zIdx);
             end
@@ -2038,6 +2067,15 @@ classdef Mixture < Solvers.AbstractField
             %
             % - If no node satisfies the condition, the most upstream node (1) is returned
 
+            % If this mixture is a subset, use the full mixture results
+            if ~isempty(mix.mixFull)
+                oafIdx = mix.mixFull.OAFIDX();
+                if oafIdx > mix.NZ
+                    oafIdx = mix.NZ;
+                end
+                return
+            end
+
             % Use saved value if it has been calculated already
             if ~isempty(mix.oafidx_const)
                 oafIdx = mix.oafidx_const;
@@ -2060,7 +2098,7 @@ classdef Mixture < Solvers.AbstractField
             % Inputs:
             %
             % - mix — :class:`Solvers.Mixture.Mixture` object containing axial grid data
-           
+            
             oafz = mix.Z(mix.OAFIDX);                                      % [m]
         end
 
@@ -2097,6 +2135,12 @@ classdef Mixture < Solvers.AbstractField
 
             if nargin < 2, zIdx = (1:mix(1).NZ).'; end
 
+            if ~isempty(mix.mixFull)
+                zIdx = zIdx + mix.solver.zIdx_offset;
+                afFnc = mix.mixFull.AFFNC(zIdx);
+                return
+            end
+
             model = mix.inputSet.model;
             geom  = mix.inputSet.geometry;
 
@@ -2126,10 +2170,16 @@ classdef Mixture < Solvers.AbstractField
 
             if nargin < 4, zIdx = (1:mix(1).NZ).'; end
 
+            if ~isempty(mix.mixFull)
+                zIdx = zIdx + mix.solver.zIdx_offset - 1;
+                afDistr = mix.mixFull.AFDISTR(param1,param2,zIdx);
+                return
+            end
+
             affnc = mix.AFFNC(zIdx);
             afDistr = (1-affnc).*param1 + affnc.*param2;
         end
-
+        
     end
 
     methods (Access = private)

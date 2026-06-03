@@ -86,28 +86,23 @@ NNODES     ! Number of axial nodes                                          > 10
 FLUID      ! Fluid ID                                                       > water
 PROPERTIES ! Fluid property assumptions                                     > saturated
 FRICTION   ! Wall friction coefficients                                     > 0.2 -0.2 0.0
-TPFM       ! Two-phase friction multiplier [-]                              > slip
-KLOC       ! Elevation of local perturbations [m]                           > 
-KLOSS      ! corresponding pressure loss coefficients [-]                   > 
-TPKM       ! Two-phase local loss multiplier [-]                            > homogeneous
-SCBOIL     ! Subcooled boiling model                                        > none
 VOID       ! Void fraction model                                            > slip
 SLIP       ! Phase velocity ratio [-]                                       > 1.15
 OAFDROPRATIO ! Drop/Liquid mass flow ratio at onset of annular flow         > 0.5
-OAF        ! Onset of annular flow model                                    > WALLIS_SIMP
+OAF        ! Onset of annular flow model                                    > WALLIS
 %OAFENTRAINED !                                                              > EQUILIBRIUM
 OAFENTRAINED !                                                              > RATIO
 OAFBASERATIO !                                                              > 0.2
 OAFFILMSPLIT !                                                              > RATIO
-THINFILMFRIC !                                                              > TURBULENT
+THINFILMFRIC !                                                              > LAMINAR
 MOMENTFILM !                                                                > ALGEBRAIC
 MOMENTBASE !                                                                > FULL
 MOMENTWAVE !                                                                > FULL
 MOMENTDROP !                                                                > slip
 POSFILM !                                                                   > 1
 BASEEQTHICK !                                                               > YPLUS
+OBSWSPLITRATIO !                                                            > 0.98 0.02
 END
-
 
 ID         ! Model ID                                                       > MFVALS
 FLUID      ! Fluid ID                                                       > R245fa
@@ -119,19 +114,4 @@ BASEEQTHICK   ! Equlibrium base film thickness model                        > MF
 EQSTROUHAL   ! Equilibrium strouhal number model                            > MFVAL
 OAFFILMSPLIT  ! Film mass flow split model at onset of annular flow         > RATIO
 OAFBASERATIO  ! Base/Film mass ratio at onset of annular flow [-]           > 1
-END
-
-ID            ! Model ID                                                   > MFVAL_tutorial
-NNODES        ! Number of axial nodes                                      > 100
-FLUID         ! Fluid ID                                                   > R245fa
-INTNU         ! Interfacial heat transfer model                            > RELAXATION
-RELAXX        ! Condensation relaxation time [s]                           > -0.5 1.0
-RELAXTCOND    ! Condensation relaxation time [s]                           >  0.5 0.5 0.01
-MOMENTLIQUID  ! Liquid momentum conservation model                         > FULL
-MOMENTGAS     ! Gas momentum conservation model                            > FULL
-MOMENTFILM    ! Film momentum conservation model                           > FULL
-WAVEBASEINT   ! Wave / base film interfacial momentum transfer model       > VAPORSHEARDROPMASS
-OAFFILMSPLIT  ! Film mass flow split model at onset of annular flow        > RATIO
-OAFBASERATIO  ! Base/Film mass ratio at onset of annular flow [-]          > 0.2
-BASEEQTHICK   ! Equlibrium base film thickness model                       > YPLUS
 END

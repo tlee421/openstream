@@ -42,6 +42,7 @@ classdef TwoFluidSolver < Solvers.AbstractSolver
         mixSolver                                                                      % Mixture object :class:`Solvers.Mixture.Mixture`
         inputSet                                                                       % Input set object :class:`Inputs.InputSet`
         STATE                                                              = Solvers.SolverState.UNSOLVED
+        SOLVERMODE
     
     end
 

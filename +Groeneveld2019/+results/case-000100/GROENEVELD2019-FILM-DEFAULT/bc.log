@@ -1,22 +1,0 @@
-
-
---------------------------------------------- Mixture solver run initiated ---------------------------------------------
-
-Solve steady-state ...
-Time  1.00 [s]	max point iter =   5 in node  52, max errors: W = 0.0000000 [kg/s], P = 0.05622 [Pa], H = 0.02352 [J/kg]                    Time  2.00 [s]	max point iter =   4 in node  47, max errors: W = 0.0000000 [kg/s], P = 0.00306 [Pa], H = 0.00023 [J/kg]                    Time  3.00 [s]	max point iter =   3 in node  47, max errors: W = 0.0000000 [kg/s], P = 0.01481 [Pa], H = 0.00117 [J/kg]                    Time  4.00 [s]	max point iter =   3 in node  47, max errors: W = 0.0000000 [kg/s], P = 0.00074 [Pa], H = 0.07958 [J/kg]                    Time  5.00 [s]	max point iter =   3 in node  47, max errors: W = 0.0000000 [kg/s], P = 0.00003 [Pa], H = 0.08497 [J/kg]                    Time  6.00 [s]	max point iter =   2 in node  50, max errors: W = 0.0000000 [kg/s], P = 0.05995 [Pa], H = 0.09698 [J/kg]                    Time  7.00 [s]	max point iter =   1 in node   2, max errors: W = 0.0000000 [kg/s], P = 0.03904 [Pa], H = 0.05289 [J/kg]                    
-		STEADY-STATE CONVERGED            max errors: W = 0.0000000 [kg/s], P = 0.03904 [Pa], H = 0.05289 [J/kg]
-Elapsed time: 0.80 sec
-
---------------------------------------------- Mixture solver run completed ---------------------------------------------
-
-
-
-------------------------------------------- Three-field solver run initiated -------------------------------------------
-
-Solve steady-state ...
-Time  1.00 [s]	max point iter =  22 in node  98, max errors: Wf = 0.0000995 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    Time  2.00 [s]	max point iter =   5 in node  97, max errors: Wf = 0.0000993 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    Time  3.00 [s]	max point iter =   1 in node   2, max errors: Wf = 0.0000982 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    
-		STEADY-STATE CONVERGED            max errors: Wf = 0.0000982 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]
-Elapsed time: 0.17 sec
-
-------------------------------------------- Three-field solver run completed -------------------------------------------
-

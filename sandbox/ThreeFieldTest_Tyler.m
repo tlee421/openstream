@@ -37,5 +37,5 @@ tfSolver = ThreeFieldSolver(inputSet, mixSolver);
 %Solve the three-field solver
 tfSolver.solve();
 %Plot the three-field solver mass flow rate results
-tfSolver.plotz('display','W');
+tfSolver.plotz('display','W', 'oafLine', false);
 

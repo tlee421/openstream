@@ -17,15 +17,15 @@ classdef SOLVER
 
             switch (enum)
                 case SOLVER.MIXTURE     
-                    solverPath = "Solvers.Mixture.MixtureSolver";
+                    solverPath = "Mixture.MixtureSolver";
                 case SOLVER.TWOFLUID
-                    solverPath = "Solvers.TwoFluid.TwoFluidSolver";
+                    solverPath = "TwoFluid.TwoFluidSolver";
                 case SOLVER.THREEFIELD
-                    solverPath = "Solvers.ThreeField.ThreeFieldSolver";
+                    solverPath = "ThreeField.ThreeFieldSolver";
                 case SOLVER.FOURFIELD
-                    solverPath = "Solvers.FourField.FourFieldSolver";
+                    solverPath = "FourField.FourFieldSolver";
                 case SOLVER.OBSTRUCTION
-                    solverPath = "Solvers.Obstruction.ObstructionSolver";
+                    solverPath = "Obstruction.ObstructionSolver";
                 otherwise
                     error("SOLVER:invalidSolver", "Solver type not recognized");
             end

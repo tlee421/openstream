@@ -1,7 +1,7 @@
 classdef ThreeFieldSolver < Solvers.AbstractSolver
     %THREEFIELDSOLVER Solver for initializing, solving, and visualizing three-field flow.
     %
-    % The ThreeFieldSolver class handles the setup, execution, and visualization
+    % The ThreeFieldSolver class handles the setup, execution, and 
     % of thermal-hydraulic simulations using a two-phase three-field approach.
     %
     % Responsibilities:
@@ -42,6 +42,8 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
         mixSolver                                                                      % Mixture object :class:`Solvers.Mixture.Mixture`
         inputSet                                                                       % Input set object :class:`Inputs.InputSet`
         STATE                                                              = Solvers.SolverState.UNSOLVED
+        SOLVERMODE
+        previousSolution
 
     end
 
@@ -53,7 +55,7 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
 
     methods
 
-        function tfSolver = ThreeFieldSolver(inputSet,mixSolver)
+        function tfSolver = ThreeFieldSolver(inputSet,mixSolver, opts)
             %THREEFIELDSOLVER Constructor for the ThreeFieldSolver class.
             %
             % Creates a new instance of the ThreeFieldSolver class using the
@@ -76,13 +78,31 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
             arguments
                 inputSet            {isa(inputSet,'Inputs.InputSet')}
                 mixSolver           {isa(mixSolver,'Solvers.Mixture.MixtureSolver')} = Solvers.Mixture.MixtureSolver(inputSet)
+                opts.solverMode     (1,1)   Solvers.SolverMode              = Solvers.SolverMode.NEW
+                opts.initSolver     (1,1)   logical                         = true
+                opts.prevSolution   {mustBeScalarOrEmpty}                   = []
             end
 
             % Call abstract class constructor
             tfSolver = tfSolver@Solvers.AbstractSolver(inputSet);
 
+            % Store initial state
+            tfSolver.STATE = Solvers.SolverState.UNSOLVED;
+
             % Store mixSolver handle
             tfSolver.mixSolver = mixSolver;
+
+            % Continue from previous solution if requested
+            if opts.solverMode == Solvers.SolverMode.CONTINUE
+                if ~isempty(opts.prevSolution)
+                    tfSolver.previousSolution = opts.prevSolution;
+                else
+                    error("THREEFIELDSOLVER:InputArgumentsError", "The previous solution was not provided");
+                end
+            end
+
+            % Store solver mode
+            tfSolver.SOLVERMODE = opts.solverMode;
 
             % Attempt to solve mixSolver if it is unsolved
             if tfSolver.mixSolver.STATE == Solvers.SolverState.UNSOLVED
@@ -90,7 +110,9 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
             end
 
             % Initialize solver parameters
-            tfSolver.initializeSolver();
+            if opts.initSolver
+                tfSolver.initializeSolver();
+            end
         end
 
         function initializeSolver(tfSolver)
@@ -201,7 +223,12 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                 %flmArr(tIdx).W = flmArr(tIdx).W+cumsum(flmArr(tIdx).MEVAP).*geom.PERIM.*tfSolver.DZ;  % [kg/s] Apply simple mass conservation
 
                 % ... or transient mass gradient in drop field
-                drp.W = drp.W+mix.W-mix.W(mix.OAFIDX);                                            % [kg/s]
+                %For new solutions
+                %if tfSolver.SOLVERMODE == SolverMode.NEW
+                %   drp.W = drp.W+mix.W-mix.W(mix.OAFIDX);                                % 
+                %end 
+
+                drp.W = drp.W+mix.W-mix.W(mix.OAFIDX);                                          % [kg/s]
                 flm.W(1,1:geom.NWALL) = (mix.liquid.W(1)-drp.W(1)).*geom.PERIM./sum(geom.PERIM);  % [kg/s] Distribute film at inlet uniformly on all walls
                 flm.W = flm.W(1,:)+cumsum(flm.MEVAP).*geom.PERIM.*tfSolver.DZ;                    % [kg/s] Apply simple mass conservation
 
@@ -227,9 +254,29 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
 
             end
 
-            % Store transient mixture array
+            % Store transient film and drop array
             tfSolver.film = flmArr;
             tfSolver.drop = drpArr;
+
+            %if solution is a continuation then copy properties from
+            %previous solution
+            if tfSolver.SOLVERMODE == SolverMode.CONTINUE
+                % TODO: Check prevSolution has same timestep as current
+                
+                % Copy threefield properties from last node in prevSolution
+                % for each time step to first node in this solution
+                for tIdx = 1:length(tfSolver.previousSolution.TIME)
+
+                    % Copy properties
+                    tfSolver.previousSolution.drop(tIdx).copyFlowProperties(tfSolver.drop(tIdx),"copyMode","continue");
+                    tfSolver.previousSolution.film(tIdx).copyFlowProperties(tfSolver.film(tIdx),"copyMode","continue");
+                    
+                    % TODO: copy these properties to all spatial nodes for
+                    % faster convergence?
+                    %tfSolver.drop(tIdx).copyFlowProperties()
+
+                end
+            end
 
             % Create steady state mixture array
             tfSolver.filmInit = copy( ...
@@ -365,6 +412,7 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
             % - Temperature unit conversion is applied if 'C' is selected.
             % - Obstruction locations are plotted if opts.obstructions is true.
             % - Each wall is plotted in a separate tile with appropriate legends and axis scaling.
+            % - If plotting OAF line is not desired set opts.oafLine = false
 
             arguments
                 tfSolver
@@ -379,6 +427,7 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                 opts.arrangement  {mustBeMember(opts.arrangement,{'flow','vertical','horizontal'})}                   = 'flow'
                 opts.resize       (1,1) double {mustBeNonnegative}                                                    = 0
                 opts.nearWall     (1,1) logical                                                                       = false
+                opts.oafLine      (1,1) logical                                                                       = true
             end
 
             if length(opts.zIdx) < 2
@@ -458,7 +507,9 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                     plotter.plotz(flm.HFLUX(opts.zIdx,:),'Film','XData',zaf,'subset',zafIdx);
                     plotter.legend('show', 'Location', 'best');
                     plotter.xlim([min(z) max(z)]);
-                    plotter.plotOAF(oafZ);
+                    if opts.oafLine
+                        plotter.plotOAF(oafZ);
+                    end
                     if opts.obstructions
                         plotter.plotK(klocZ);
                     end
@@ -476,7 +527,9 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                     plotter.plotz(mix.vapor.W(opts.zIdx)                      ,'Vapor'                             );
                     plotter.legend('show', 'Location', 'best');
                     plotter.xlim([min(z) max(z)]);
-                    plotter.plotOAF(oafZ);
+                    if opts.oafLine
+                        plotter.plotOAF(oafZ);
+                    end
                     if opts.obstructions
                         plotter.plotK(klocZ);
                     end
@@ -490,7 +543,9 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                         'ylabel'   ,           'Film mass flow rate [kg/s/m]');
                     plotter.plotz(flm.WL(opts.zIdx),'Film','XData',zaf,'subset',zafIdx)
                     plotter.xlim([min(z) max(z)]);
-                    plotter.plotOAF(oafZ);
+                    if opts.oafLine
+                        plotter.plotOAF(oafZ);
+                    end
                     if opts.obstructions
                         plotter.plotK(klocZ);
                     end
@@ -507,7 +562,9 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                     plotter.plotz(mix.vapor.U(opts.zIdx)  ,'Vapor'                           );
                     plotter.legend('show', 'Location', 'best');
                     plotter.xlim([min(z) max(z)]);
-                    plotter.plotOAF(oafZ);
+                    if opts.oafLine
+                        plotter.plotOAF(oafZ);
+                    end
                     if opts.obstructions
                         plotter.plotK(klocZ);
                     end
@@ -521,7 +578,9 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                         'ylabel',   'Film thickness [m]');
                     plotter.plotz(flm.THICK(opts.zIdx),'Film','XData',zaf,'subset',zafIdx);
                     plotter.xlim([min(z) max(z)]);
-                    plotter.plotOAF(oafZ);
+                    if opts.oafLine
+                        plotter.plotOAF(oafZ);
+                    end
                     if opts.obstructions
                         plotter.plotK(klocZ);
                     end
@@ -539,7 +598,9 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                     plotter.plotz(flm.MTOT(drp,opts.zIdx),      'Total');
                     plotter.legend('show', 'Location', 'best');
                     plotter.xlim([min(z) max(z)]);
-                    plotter.plotOAF(oafZ);
+                    if opts.oafLine
+                        plotter.plotOAF(oafZ);
+                    end
                     if opts.obstructions
                         plotter.plotK(klocZ);
                     end
@@ -559,7 +620,9 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                     plotter.plotz(flm.FTOT(drp,opts.zIdx),'Total'                                     ,'XData',zaf,'subset',zafIdx);
                     plotter.legend('show', 'Location', 'best');
                     plotter.xlim([min(z) max(z)]);
-                    plotter.plotOAF(oafZ);
+                    if opts.oafLine
+                        plotter.plotOAF(oafZ);
+                    end
                     if opts.obstructions
                         plotter.plotK(klocZ);
                     end
@@ -578,7 +641,9 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                     plotter.plotz(drp.FTOT(flm,opts.zIdx),'Total'                                       ,'XData',zaf,'subset',zafIdx);
                     plotter.legend('show', 'Location', 'best');
                     plotter.xlim([min(z) max(z)]);
-                    plotter.plotOAF(oafZ);
+                    if opts.oafLine
+                        plotter.plotOAF(oafZ);
+                    end
                     if opts.obstructions
                         plotter.plotK(klocZ);
                     end
@@ -603,7 +668,9 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                     ymin = min(arrayfun(@(x) min(x.YLim),plotter.gca))-1E-6;
                     ymax = max(arrayfun(@(x) max(x.YLim),plotter.gca))+1E-6;
                     plotter.ylim([ymin ymax]);
-                    plotter.plotOAF(oafZ);
+                    if opts.oafLine
+                        plotter.plotOAF(oafZ);
+                    end
                     if opts.obstructions
                         plotter.plotK(klocZ);
                     end

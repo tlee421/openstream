@@ -1,4 +1,4 @@
-classdef (Abstract) AbstractSolver < handle
+classdef (Abstract) AbstractSolver < matlab.mixin.Copyable & handle
     %ABSTRACTSOLVER Defines the base interface and shared functionality for all solver classes.
     %
     % Subclasses must implement the abstract methods and properties defined here.
@@ -14,6 +14,8 @@ classdef (Abstract) AbstractSolver < handle
 
         % Solver state, defined by :class:`Solvers.SolverState` enumeration
         STATE (1,1) Solvers.SolverState
+        % Solver mode, defined by :class:`Solvers.SolverMode` enumeration, Solver solution mode: NEW, CONTINUE, or SUBSET
+        SOLVERMODE (1,1) Solvers.SolverMode
 
     end
 
@@ -24,7 +26,6 @@ classdef (Abstract) AbstractSolver < handle
         plotz
         plott
         plotzt
-
     end
 
     methods
@@ -36,6 +37,9 @@ classdef (Abstract) AbstractSolver < handle
             % and applies solver-specific properties.
 
             solverName = regexpi(metaclass(solver).Name, '(?<=\.)[^.]+(?=\.)', 'match','once'); % Extract Solver name
+            if strcmpi(solverName, 'Obstruction')
+                solverName = 'ThreeField';
+            end
             solver.inputSet = inputSet.applySolverDependentProps(solverName);
         end
 

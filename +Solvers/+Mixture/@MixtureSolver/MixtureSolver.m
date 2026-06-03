@@ -38,9 +38,12 @@ classdef MixtureSolver < Solvers.AbstractSolver
 
     properties (SetAccess = protected)
 
-        inputSet                                                                       % Input set object :class:`Inputs.InputSet`
-        STATE                                                              = Solvers.SolverState.UNSOLVED
-
+        inputSet
+        STATE                                                               = Solvers.SolverState.UNSOLVED
+        SOLVERMODE                                                          = Solvers.SolverMode.NEW
+        previousSolution
+        fullSolution
+        zIdx_offset
     end
 
     methods
@@ -1241,6 +1244,136 @@ classdef MixtureSolver < Solvers.AbstractSolver
                 mix.Z(isnan(interpOut)), ...
                 'linear', ...
                 "extrap");
+        end
+
+        function solverSubset = subset(mixSolver, start_zIdx, subsetSize, opts)
+            %SOLVERSUBSET
+            %
+            %   start_zIdx: zIdx of first axial node, inclusive
+            %   subsetSize: size of subset
+            arguments
+                mixSolver
+                start_zIdx
+                subsetSize
+                opts.inputSet (1,1) Inputs.InputSet
+            end
+
+            % Create copy of solver
+            solverSubset = mixSolver.copy();
+
+            % Use the provided input set for this subset
+            solverSubset.inputSet = opts.inputSet;
+
+            % SolverMode is SUBSET
+            solverSubset.SOLVERMODE = Solvers.SolverMode.SUBSET;
+
+            % Save full solver
+            solverSubset.fullSolution = mixSolver;
+
+            % Set Z, NZ, and zIdx_offset
+            % TODO: Add check out out of bounds
+            subset_zIdx = start_zIdx:start_zIdx+subsetSize-1;
+            solverSubset.Z = solverSubset.Z(subset_zIdx);
+            solverSubset.NZ = subsetSize;
+            solverSubset.zIdx_offset = start_zIdx;
+
+            % update boundary condition
+            solverSubset.boundaryConditions.WPOWER = solverSubset.boundaryConditions.WPOWER(subset_zIdx,:,:);
+            solverSubset.boundaryConditions.HFLUX = solverSubset.boundaryConditions.HFLUX(subset_zIdx,:,:);
+
+            % Make copy of mixtureInit at each timestep
+            for tIdx = 1:length(solverSubset.mixtureInit)
+                
+                % Make copy
+                mixCopy = copy(solverSubset.mixtureInit(tIdx));
+
+                % Link to full mix
+                mixCopy.mixFull = solverSubset.mixtureInit(tIdx);
+
+                % Set Z, NZ
+                mixCopy.Z = solverSubset.Z;
+                mixCopy.NZ = solverSubset.NZ;
+
+                % Set solver
+                mixCopy.solver = solverSubset;
+                
+                % Take subset of each vector prop
+                % NOTE: this should be part of mixture?
+                propNames = {'HFLUX', 'W', 'P', 'H', 'DP', 'ITR'};
+                for propIdx = 1:length(propNames)
+                    if isstruct(mixCopy.(propNames{propIdx}))
+                        fNames = fieldnames(mixCopy.(propNames{propIdx}));
+                        for fIdx = 1:length(fNames)
+                            mixCopy.(propNames{propIdx}).(fNames{fIdx}) = ...
+                                mixCopy.(propNames{propIdx}).(fNames{fIdx})(subset_zIdx,:);
+                            if propNames{propIdx} == "DP" && start_zIdx ~= 1
+                                %mixCopy.(propNames{propIdx}).(fNames{fIdx})(1) = sum(mixSolver.mixtureInit(tIdx).(propNames{propIdx}).(fNames{fIdx})(1:start_zIdx,:));
+                                %mixCopy.(propNames{propIdx}).(fNames{fIdx})(2:end) = mixSolver.mixtureInit(tIdx).(propNames{propIdx}).(fNames{fIdx})(subset_zIdx(2:end),:);
+                                mixCopy.(propNames{propIdx}).(fNames{fIdx})(1:end) = mixSolver.mixtureInit(tIdx).(propNames{propIdx}).(fNames{fIdx})(subset_zIdx(1:end),:);
+                            end
+                        end
+                    elseif ismatrix(mixCopy.(propNames{propIdx}))
+                        mixCopy.(propNames{propIdx}) = mixCopy.(propNames{propIdx})(subset_zIdx,:);
+                    end
+                end
+
+                % Set liquid and vapor reference
+                mixCopy.liquid = Solvers.Mixture.Liquid(mixCopy);
+                mixCopy.vapor = Solvers.Mixture.Vapor(mixCopy);
+
+                % TODO: Create updated fluid property
+                
+                % save
+                solverSubset.mixtureInit(tIdx) = mixCopy;
+
+            end
+
+            % Make copy of mixture at each timestep
+            % TODO: combine with above for loop
+            for tIdx = 1:length(solverSubset.mixture)
+                
+                % Make copy
+                mixCopy = copy(solverSubset.mixture(tIdx));
+
+                % Link to full mix
+                mixCopy.mixFull = solverSubset.mixture(tIdx);
+
+                % Set Z, NZ
+                mixCopy.Z = solverSubset.Z;
+                mixCopy.NZ = solverSubset.NZ;
+
+                % Set solver
+                mixCopy.solver = solverSubset;
+                
+                % Take subset of each vector prop
+                % NOTE: this should be part of mixture?
+                propNames = {'HFLUX', 'W', 'P', 'H', 'DP', 'ITR'};
+                for propIdx = 1:length(propNames)
+                    if isstruct(mixCopy.(propNames{propIdx}))
+                        fNames = fieldnames(mixCopy.(propNames{propIdx}));
+                        for fIdx = 1:length(fNames)
+                            mixCopy.(propNames{propIdx}).(fNames{fIdx}) = ...
+                                mixCopy.(propNames{propIdx}).(fNames{fIdx})(subset_zIdx,:);
+                            if propNames{propIdx} == "DP" && start_zIdx ~= 1
+                                %mixCopy.(propNames{propIdx}).(fNames{fIdx})(1) = sum(mixSolver.mixture(tIdx).(propNames{propIdx}).(fNames{fIdx})(1:start_zIdx,:));
+                                %mixCopy.(propNames{propIdx}).(fNames{fIdx})(2:end) = mixSolver.mixture(tIdx).(propNames{propIdx}).(fNames{fIdx})(subset_zIdx(2:end),:);
+                                mixCopy.(propNames{propIdx}).(fNames{fIdx})(1:end) = mixSolver.mixture(tIdx).(propNames{propIdx}).(fNames{fIdx})(subset_zIdx(1:end),:);
+                            end
+                        end
+                    elseif ismatrix(mixCopy.(propNames{propIdx}))
+                        mixCopy.(propNames{propIdx}) = mixCopy.(propNames{propIdx})(subset_zIdx,:);
+                    end
+                end
+
+                % Set liquid and vapor reference
+                mixCopy.liquid = Solvers.Mixture.Liquid(mixCopy);
+                mixCopy.vapor = Solvers.Mixture.Vapor(mixCopy);
+
+                % save
+                solverSubset.mixture(tIdx) = mixCopy;
+
+            end
+
         end
 
     end

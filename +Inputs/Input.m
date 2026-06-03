@@ -166,13 +166,24 @@ classdef (HandleCompatible) Input < dynamicprops & matlab.mixin.Copyable
                 cellfun(@(setaccess) isa(setaccess, 'meta.class'), [metaclass(obj).PropertyList.SetAccess]) ...
                 & ~strcmp(string({metaclass(obj).PropertyList.Name}),'SOLVERDEPENDENTPROPS')...
                 & ~strcmp(string({metaclass(obj).PropertyList.Name}),'extra')...
-                & ~strcmp(string({metaclass(obj).PropertyList.Name}),'warnings'));
+                & ~strcmp(string({metaclass(obj).PropertyList.Name}),'warnings')...
+                & ~strcmp(string({metaclass(obj).PropertyList.Name}),'protected'));
 
             % Exclude properties specified in opts.exclude
             for idx = 1:length(opts.exclude)
                 objPropnames = objPropnames( ...
                     ~strcmpi(objPropnames,opts.exclude{idx}));
             end
+        end
+
+        function obj = setProperty(obj, propName, value)
+            %SETPROPERTY A setter for protected properties
+            %
+            % Limited to access protected properties
+
+            % Change property value
+            obj.(propName) = value;
+
         end
 
         function [varargout] = defaultValueUsedReport(obj, propNames, propValues)

@@ -362,8 +362,9 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
 
             X = 1-absfilm.W(zIdx,:)./absfilm.mix.NEARWALL.W(zIdx,:);
         end
-
     end
+
+
 
     methods(Access = private)
 

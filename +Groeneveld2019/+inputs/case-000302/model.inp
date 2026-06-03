@@ -1,7 +1,0 @@
-ID         ! Model ID                                                       > DEFAULT
-MOMENTFILM ! Film momentum conservation model                               > ALGEBRAIC
-POSFILM    ! Three-field solver models                                      > 0.00000000000
-NNODES     !                                                                > 100.00000000000
-FLUID      ! Fluid ID                                                       > WATER
-END
-

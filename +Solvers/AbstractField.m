@@ -184,51 +184,128 @@ classdef (Abstract) AbstractField < matlab.mixin.Copyable
                 out(i) = outElement;
             end
         end
-
+        
         function copyFlowProperties(srcObj, targetObj, opts)
             %COPYFLOWPROPERTIES Copies flow properties from source to target field object
             %
-            % Supports full or partial copying depending on 'opts.all'
-            % flag.
+            % Supports full or partial copying depending on 'opts.copyMode'.
+            %
+            % Copy modes:
+            %   "rest"     - Partial copy, preserving inlet conditions (default)
+            %   "full"     - Full copy of all flow properties
+            %   "continue" - Copies last spatial element of src to first of target
+            %
+            % Deprecated:
+            %   opts.all (logical) - Use opts.copyMode="full" instead
 
             arguments
                 srcObj
                 targetObj (1,:) Solvers.AbstractField
-                opts.all  (1,1) logical = false
+                opts.copyMode (1,1) string {mustBeMember(opts.copyMode, {'full','rest','continue'})} = "rest"
+                opts.all      (1,1) logical = false  % deprecated, use copyMode="full"
+            end
+
+            % Resolve legacy opts.all into copyMode
+            if opts.all
+                warning( ...
+                    'AbstractField:copyFlowProperties:deprecatedOption', ...
+                    'opts.all is deprecated and will be removed in a future version. Use copyMode="full" instead.' ...
+                    );
+                opts.copyMode = "full";
             end
 
             % TODO: add type check for srcObj and targetObj
 
             for i = 1:length(targetObj)
-                % Make sure obj meshes match
-                if srcObj.Z ~= targetObj(1).Z
-                    classType = class(srcObj);
-                    throw( ...
-                        MException( ...
-                        'AbstractFieldError:copyFlowPropertiesError', ...
-                        sprintf('Source and target objects (%s) have mismatched spatial meshes', classType) ...
-                        ) ...
-                        );
+
+                % Mesh check (not required for "continue" as src and target
+                % may intentionally have different meshes)
+                if opts.copyMode == "full" || opts.copyMode == "rest"
+                    if srcObj.Z ~= targetObj(i).Z
+                        classType = class(srcObj);
+                        throw( ...
+                            MException( ...
+                                'AbstractFieldError:copyFlowPropertiesError', ...
+                                sprintf('Source and target objects (%s) have mismatched spatial meshes', classType) ...
+                                ) ...
+                            );
+                    end
                 end
 
                 % Copy properties
                 propNames = srcObj.flowProperties;
                 for j = 1:length(propNames)
-                    % Full copy
-                    if opts.all
-                        targetObj(1).(propNames{j}) = srcObj.(propNames{j});
-                    % Partial copy to preserve inlet conditions
-                    else
-                        % Scalar structs are copied per field
-                        if isstruct(targetObj(1).(propNames{j})) && isscalar(targetObj(1).(propNames{j}))
-                            structFields = fieldnames(targetObj(1).(propNames{j}));
+
+                    if opts.copyMode == "full"
+                        % Full copy
+                        targetObj(i).(propNames{j}) = srcObj.(propNames{j});
+
+                    elseif opts.copyMode == "rest"
+                        % Partial copy, preserving inlet conditions (index 1)
+                        if isstruct(targetObj(i).(propNames{j})) && isscalar(targetObj(i).(propNames{j}))
+                            % Scalar structs are copied per field
+                            structFields = fieldnames(targetObj(i).(propNames{j}));
                             for ii = 1:length(structFields)
-                                targetObj(1).(propNames{j}).(structFields{ii})(2:end) = ...
+                                targetObj(i).(propNames{j}).(structFields{ii})(2:end) = ...
                                     srcObj.(propNames{j}).(structFields{ii})(2:end);
+                            end
+                        else
+                            % Non-scalar properties copied as a vector
+                            targetObj(i).(propNames{j})(2:end) = srcObj.(propNames{j})(2:end);
+                        end
+
+                    elseif opts.copyMode == "continue"
+                        % Delegate to overridable hook method to allow subclass-specific
+                        % behaviour (e.g. wall-splitting) without modifying this function
+                        
+                        % Scalar structs are copied per field
+                        if isstruct(targetObj(i).(propNames{j})) && isscalar(targetObj(i).(propNames{j}))
+                            structFields = fieldnames(targetObj(i).(propNames{j}));
+                            for ii = 1:length(structFields)
+                                targetObj(i).(propNames{j}).(structFields{ii})(1) = ...
+                                    srcObj(i).(propNames{j}).(structFields{ii})(end);
                             end
                         % Non-scalar properties are copied as a vector
                         else
-                            targetObj(1).(propNames{j})(2:end) = srcObj.(propNames{j})(2:end);
+                            % If property size shows different num. of walls, 
+                            % look at inputset.obs for hints, FOR NOW
+                            % TODO: if there are more than 1 obstruction,
+                            %       major changes will be needed.
+                            if size(targetObj(i).(propNames{j}), 2) ~= size(srcObj(i).(propNames{j}), 2)
+
+                                % TODO: Check if an obs exists
+                                
+                                % Determine obstruction wall id
+                                wallID = srcObj.inputSet.obs(1).WALL;
+
+                                % source value
+                                srcVal = srcObj(i).(propNames{j})(end,:);
+
+                                % Split srcVal at wallID to 2
+                                % ex. if wallID ==1 , targetVal(:,[1,2])
+                                % will correspond to srcVal(:,1)
+                                if propNames{j} == 'W'
+                                    massSplitRatio = srcObj.inputSet.model.OBSWSPLITRATIO;
+                                    massSplitRatio = massSplitRatio.'./sum(massSplitRatio);
+                                    
+                                    targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2).*massSplitRatio, srcVal(:,wallID+1:end)];
+                                else
+                                    targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2), srcVal(:,wallID+1:end)];
+                                end
+
+                                % Assign targetVal
+                                targetObj(i).(propNames{j})(1,:) = targetVal;                                
+
+                                
+                            else
+                                if isobject(srcObj(i).(propNames{j}))
+                                    % copy flow properties
+                                    srcObj(i).(propNames{j})(end).copyFlowProperties(targetObj(i).(propNames{j})(1),"copyMode","continue");
+                                else
+                                    % simply copy if same size
+                                    targetObj(i).(propNames{j})(1,:) = srcObj(i).(propNames{j})(end,:);
+                                end
+                            end
                         end
                     end
                 end

@@ -1,31 +1,51 @@
-inputSet_noObs = Inputs.InputSet( ...
-                    modelFilePath = './inputs/models.inp', modelID = 'BARCS', ...
-                    optionsFilePath = './inputs/options.inp', optionsID = 'STEADY', ...
-                    geometryFilePath = './inputs/geom.inp', geometryID = 'BARC', ...
-                    bcFilePath = './inputs/bc_barc.inp', ...
-                    sessionParentDir = fullfile(pwd,'outputs'), ...
-                    overwriteSessionFiles = true, ...
-                    LOGMODE = 'BOTH');
+%% Non Obstructed Solver
+clear vars
 
-solver = Solvers.ThreeField.ThreeFieldSolver(inputSet_noObs);
-% solver = Solvers.FourField.FourFieldSolver(inputSet_noObs);
+%Import Inputs and Solvers classes
+import Inputs.*
+import Solvers.*
 
-solver.solve();
+%turn of warnings during initial setup
+warning off
+%Create input set 
+%Inputs
+ inputSet_no_obs = InputSet( ...
+            modelFilePath         = './inputs/models.inp',  modelID    = 'BARCS', ...
+            optionsFilePath       = './inputs/options.inp', optionsID  = 'DEFAULT', ...
+            geometryFilePath      = './inputs/geom.inp',    geometryID = 'BARC', ...
+            bcFilePath            = './inputs/bc_barc.inp', ...
+            sessionParentDir      = fullfile(pwd,'outputs'), ...
+            overwriteSessionFiles = true, ...
+            LOGMODE               = 'BOTH');
+%Turn warnings back on 
+warning on
 
-%% PLOT?
-solver.mixSolver.plotz(1);
-%tfSolver.mixSolver.plotz(tfSolver.mixSolver.NTIME);
-% tfSolver.plotz(1);
-linkaxes(findobj(gcf().Children.Children,'Type','Axes'),'x');
-%xlim([0, 2.75]);
-solver.plotz(1);
-sgtitle('Non-obstructed')
+%import mixture solver class
+import Solvers.Mixture.*
+% Create the mixture solver
+mixSolver = MixtureSolver(inputSet_no_obs);
+%initialize the mixture solver
+mixSolver.initializeSolver();
+%solve the mixture solver
+mixSolver.solve();
+%plot the mixture solver mass flow rate results 
+mixSolver.plotz('display','W');
 
-%% OBS Solver
+%import three-field solver class
+import Solvers.ThreeField.*
+% Create the three-field solver
+tfSolver = ThreeFieldSolver(inputSet_no_obs, mixSolver);                                                        
+%Solve the three-field solver
+tfSolver.solve();
+%Plot the three-field solver mass flow rate results
+tfSolver.plotz('display','W');
 
+%% Obstructed Solver
+
+warning off
 inputSet = Inputs.InputSet( ...
     modelFilePath = './inputs/models.inp', modelID = 'BARCS', ...
-    optionsFilePath = './inputs/options.inp', optionsID = 'STEADY', ...
+    optionsFilePath = './inputs/options.inp', optionsID = 'DEFAULT', ...
     geometryFilePath = './inputs/geom.inp', geometryID = 'BARC', ...
     bcFilePath = './inputs/bc_barc.inp', ...
     obsFilePath = './inputs/obstruction.inp', obsIDs = {'ROD'}, ...
@@ -43,39 +63,24 @@ inputSet = Inputs.InputSet( ...
 %             overwriteSessionFiles = true, ...
 %             LOGMODE               = 'BOTH');
 
+
 obsSolver = Solvers.Obstruction.ObstructionSolver(inputSet, 'THREEFIELD');
 % obsSolver = Solvers.Obstruction.ObstructionSolver(inputSet, 'FOURFIELD');
+
 obsSolver.solve();
+%%
+%Test segmentation is consistent
+fprintf('Checking mass flow rate consistency across segments\n')
+fprintf('segment1 last node  film W = %.6f\n', obsSolver.solutionSets(1).solver.film(1).W(end,1));
+fprintf('segment2 first node filmW = %.6f\n', obsSolver.solutionSets(2).solver.film(1).W(1,1));
+fprintf('segment1 last node  drop W = %.6f\n', obsSolver.solutionSets(1).solver.drop(1).W(end,1));
+fprintf('segment2 first node drop W = %.6f\n', obsSolver.solutionSets(2).solver.drop(1).W(1));
+fprintf('segment2 last node  film W = %.6f\n', obsSolver.solutionSets(2).solver.film(1).W(end,1));
+fprintf('segment3 first node film W = %.6f\n', obsSolver.solutionSets(3).solver.film(1).W(1,1));
+fprintf('segment2 last node  drop W = %.6f\n', obsSolver.solutionSets(2).solver.drop(1).W(end,1));
+fprintf('segment3 first node drop W = %.6f\n', obsSolver.solutionSets(3).solver.drop(1).W(1));
 
-% Plot
-plotter = obsSolver.solutionSets(1).solver.mixSolver.plotz(1);
-% obsSolver.solutionSets(1).solver.mixSolver.plotz(obsSolver.solutionSets(1).solver.mixSolver.NTIME);
-% obsSolver.solutionSets(1).solver.plotz(1);
-linkaxes(findobj(gcf().Children.Children,'Type','Axes'),'x');
-
-plotter = obsSolver.solutionSets(2).solver.mixSolver.plotz(1, 'plotter', plotter);
-% obsSolver.solutionSets(1).solver.mixSolver.plotz(obsSolver.solutionSets(1).solver.mixSolver.NTIME);
-xlim(plotter.gca(), 'auto');
-ylim(plotter.gca(), 'auto');
-
-plotter = obsSolver.solutionSets(3).solver.mixSolver.plotz(1, 'plotter', plotter);
-% obsSolver.solutionSets(1).solver.mixSolver.plotz(obsSolver.solutionSets(1).solver.mixSolver.NTIME);
-linkaxes(findobj(findobj(gcf().Children, 'Type', 'tiledlayout').Children,'Type','Axes'),'x');
-
-
-
-plotter = obsSolver.solutionSets(1).solver.plotz(1);
-linkaxes(findobj(findobj(gcf().Children, 'Type', 'tiledlayout').Children,'Type','Axes'),'x');
-xlim([0 5.5]);
-
-plotter = obsSolver.solutionSets(2).solver.plotz(1, 'plotter', plotter);
-linkaxes(findobj(findobj(gcf().Children, 'Type', 'tiledlayout').Children,'Type','Axes'),'x');
-xlim([0 5.5]);
-sgtitle('three-field, obstructed, pre-wake regions')
-
-plotter = obsSolver.solutionSets(3).solver.plotz(1, 'plotter', plotter);
-linkaxes(findobj(findobj(gcf().Children, 'Type', 'tiledlayout').Children,'Type','Axes'),'x');
-xlim([0 5.5]);
-
-
-plotObstructionTracks(obsSolver);
+%% 
+% Ploting
+%Plot the three field model results for the three tracks merged together
+obsSolver.plotz('display','WL')

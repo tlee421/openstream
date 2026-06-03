@@ -2,7 +2,7 @@ classdef Obstruction < Inputs.Input
     %OBSTRUCTION Reuseable wall obstruction definition
     %   Detailed explanation goes here
     
-    properties (SetAccess=protected)
+    properties (SetAccess=?Inputs.Input)
         
         ID         (1,1) string  {mustBeTextScalar}                                                % Channel ID
         SHAPE      (1,1) InputEnums.OBSSHAPE                                                       % Base geom. shape
@@ -48,29 +48,64 @@ classdef Obstruction < Inputs.Input
             %
             % List of immutable obj property names
             objPropnames = obj.listInputProperties("exclude",{"LENGTH", "WDITH", "AREA", "PERIM", "NWALL"});
+            %objPropnames = obj.listInputProperties()
             
             % Array of fieldnames using default values
             defaultValueFieldNames = string().empty();
-
+            defaultValues = {};
+            
             % Iterate through obj property names
             for idx = 1:length(objPropnames)
-                
+
                 % Retrieve idx-th item in objPropnames
                 objPropname = objPropnames(idx);
-                
+
                 % Check if the objPropname entry is specified, and if the
                 % default value should be used
-                [isSpecified, useDefault] = obj.validateInputEntry(objPropname,id=obstructionID);
+                [isSpecified, useDefault, defaultValue] = obj.validateInputEntry(objPropname,id=obstructionID);
+
                 if ~useDefault
-                    obj.(objPropname) = ...
-                                    upper(obj.inputStruct.(objPropname));
+
+                    % Take care of special cases
+                    % Function handles provided in string format cannot be
+                    % automatically cast to a function_handle. Here, a
+                    % validation is first performed to detect restricted
+                    % keywords, then converted.
+                    if isa(obj.(objPropname), "function_handle") && isstring(obj.inputStruct.(objPropname))
+
+                        % Check for insecure keywords in function handle
+                        obj.validateFunctionHandleInput(obj.inputStruct.(objPropname))    ;
+                        obj.(objPropname) = ...
+                            str2func(obj.inputStruct.(objPropname));
+                    else
+                        obj.(objPropname) = ...
+                            upper(obj.inputStruct.(objPropname));
+                    end
                 elseif useDefault
                     defaultValueFieldNames(end+1) = objPropname;
+                    defaultValues{end+1} = defaultValue;
                 end
-                
+
                 if isSpecified
                     % Remove objPropname from inputStruct
                     obj.inputStruct = rmfield(obj.inputStruct, objPropname);
+                end
+            end
+
+            % Default value used warning
+            if ~isempty(defaultValueFieldNames)
+                defaultValueWarningString = obj.defaultValueUsedReport(defaultValueFieldNames, defaultValues);
+                if nargout == 0
+                    warning('Model:defaultValueUsedWarning', ...
+                        sprintf('%s\n',defaultValueWarningString));
+                else
+                    w = struct('warnID', 'Model:defaultValueUsedWarning', ...
+                        'msg', defaultValueWarningString);
+                    if isempty(obj.warnings)
+                        obj.warnings = w;
+                    else
+                        obj.warnings(end+1) = w;
+                    end
                 end
             end
 
@@ -82,15 +117,6 @@ classdef Obstruction < Inputs.Input
                     upper(class(obj)), sprintf('%s ',remainingInputStructFields{:}) ...
                     );
                 obj.extra = obj.inputStruct;
-            end
-
-            % If default values were used, warn user
-            % TODO: remove excluded properties from this list
-            if ~isempty(defaultValueFieldNames)
-                warning( ...
-                    '%s: Default values were used for these entries: \n\t %s ', ...
-                    upper(class(obj)), sprintf('%s ',defaultValueFieldNames{:}) ...
-                    );
             end
 
             % Remove dynamic property inputStruct
