@@ -1,22 +1,0 @@
-
-
---------------------------------------------- Mixture solver run initiated ---------------------------------------------
-
-Solve steady-state ...
-Time  1.00 [s]	max point iter =   4 in node  11, max errors: W = 0.0000000 [kg/s], P = 0.07179 [Pa], H = 0.00244 [J/kg]                    Time  2.00 [s]	max point iter =   3 in node  11, max errors: W = 0.0000000 [kg/s], P = 0.07363 [Pa], H = 0.00149 [J/kg]                    Time  3.00 [s]	max point iter =   3 in node  11, max errors: W = 0.0000000 [kg/s], P = 0.00005 [Pa], H = 0.06547 [J/kg]                    Time  4.00 [s]	max point iter =   3 in node  27, max errors: W = 0.0000000 [kg/s], P = 0.09859 [Pa], H = 0.07259 [J/kg]                    Time  5.00 [s]	max point iter =   3 in node  93, max errors: W = 0.0000000 [kg/s], P = 0.09732 [Pa], H = 0.09853 [J/kg]                    Time  6.00 [s]	max point iter =   2 in node 100, max errors: W = 0.0000000 [kg/s], P = 0.05617 [Pa], H = 0.09992 [J/kg]                    
-		STEADY-STATE CONVERGED            max errors: W = 0.0000000 [kg/s], P = 0.05630 [Pa], H = 0.10642 [J/kg]
-Elapsed time: 0.74 sec
-
---------------------------------------------- Mixture solver run completed ---------------------------------------------
-
-
-
-------------------------------------------- Three-field solver run initiated -------------------------------------------
-
-Solve steady-state ...
-Time  1.00 [s]	max point iter =  19 in node  83, max errors: Wf = 0.0000995 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    Time  2.00 [s]	max point iter =   4 in node  93, max errors: Wf = 0.0001000 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    Time  3.00 [s]	max point iter =   1 in node   2, max errors: Wf = 0.0000994 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]                    
-		STEADY-STATE CONVERGED            max errors: Wf = 0.0000994 [kg/s/m], Uf = 0.00000 [m/s], Ud = 0.00000 [m/s]
-Elapsed time: 0.22 sec
-
-------------------------------------------- Three-field solver run completed -------------------------------------------
-

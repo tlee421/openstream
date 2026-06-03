@@ -1,6 +1,0 @@
-
-
---------------------------------------------- Mixture solver run initiated ---------------------------------------------
-
-Solve steady-state ...
-Time  1.00 [s]	max point iter =   3 in node   2, max errors: W = 0.0000000 [kg/s], P = 0.02381 [Pa], H = 0.00003 [J/kg]                    Time  2.00 [s]	max point iter =   2 in node   4, max errors: W = 0.0000000 [kg/s], P = 0.03125 [Pa], H = 0.06897 [J/kg]                    Time  3.00 [s]	max point iter =   2 in node  43, max errors: W = 0.0000000 [kg/s], P = 0.00006 [Pa], H = 0.09394 [J/kg]                    Time  4.00 [s]

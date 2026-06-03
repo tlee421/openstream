@@ -1,6 +1,0 @@
-ID         ! Model ID                                                       > DEFAULT
-MOMENTFILM ! Film momentum conservation model                               > ALGEBRAIC
-NNODES     !                                                                > 100.00000000000
-FLUID      ! Fluid ID                                                       > WATER
-END
-
