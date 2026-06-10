@@ -153,7 +153,7 @@ classdef Model < Inputs.Input
         % Obstruction solver models
         
         OBSWSPLITRATIO   (2,1) double  {mustBeNonnegative}                 = [0.0133 0.0005]                 % Split ratio of mass downstream of obstruction (wake region ratio is 2nd term) [kg/s]
-
+        WAKEWIDTH        (1,1) InputEnums.WAKEWIDTH                        = 'OBSWIDTH'                      % Wake track width
     end
 
     properties (Constant)

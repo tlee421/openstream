@@ -71,9 +71,6 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             % Split inputSet into axial segments
             [obsSolver.inputSet, obsSolver.axialBoundIndices] = obsSolver.inputSet.SplitByAxialPosition(obsSolver.axialBounds);
 
-            % Split last/3rd inputSet by tracks
-            obsSolver.inputSet(end).SplitBySpanPosition(obs.WALL, obsSolver.spanBounds);
-
             % Store solver type
             obsSolver.solverType = solverType;
             
@@ -177,11 +174,19 @@ classdef ObstructionSolver < Solvers.AbstractSolver
 
             %%
             %   3. After the obstruction
+
+            % Split post-obs segment into two tracks
+            % For now, assume only one obstruction is given
+            obs = obsSolver.originalInputset.obs(1);
+            %Split into two tracks
+            obsSolver.inputSet(end).SplitBySpanPosition(obs.WALL, obsSolver.spanBounds, obsSolver);
+
             % Update inputSet P
             for tIdx = 1:length(obsSolver.inputSet(3).bc)
                 obsSolver.inputSet(3).bc(tIdx).setProperty("PRESSURE", stepSolver(2).mixSolver.mixture(1).P(end));
                 obsSolver.inputSet(3).bc(tIdx).setProperty("HIN", stepSolver(2).mixSolver.mixture(1).H(end));
             end
+
             obsSolver.solutionSets(3) = SolutionSet( ...
                                             "NONOBS", ...
                                             obsSolver.inputSet(3), ...

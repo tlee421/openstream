@@ -51,6 +51,22 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             thick = absfilm.WL(zIdx)./absfilm.U(zIdx,:)./rhof;
         end
 
+        function thickHH = THICKHH(absfilm, zIdx)
+            %THICKHH Film thickness according to Henstock and Hanratty 1976
+            if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
+            RE = max(absfilm.RE(zIdx), 1E-6);                              % Film Reynolds Number
+            tau_i = abs(absfilm.FWALL(zIdx));                              % [Pa] Film wall shear stress
+            tau_w = abs(absfilm.FVAPOR(zIdx));                             % [Pa] Film interfacial shear stress
+            rhof  = absfilm.fluid.RHOF;                                    % [kg/m^3] Saturated liquid density
+            mu_f = absfilm.fluid.MUF;                                      % [Pa*s] Saturated liquid viscosity
+            nu_f = mu_f / rhof;                                            % [m^2/s] Saturated liquid kinematic viscosity
+
+            tau_c = (1/3) * tau_i + (2/3) * tau_w;                         % Representative fluid shear stress
+            u_l_star = sqrt(tau_c/rhof);                                   % Film friction velocity
+            delta_plus =((0.707 * RE.^0.5).^2.5 + (0.037*RE.^0.9).^2.5).^0.4;% Film thickness in inner coordinates according to H&H
+            thickHH = delta_plus*nu_f./u_l_star;                            % Film thickness 
+        end
+
         function re = RE(absfilm,zIdx)
             %RE Film Reynolds number [-]
 
@@ -224,7 +240,10 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
 
             model = absfilm.inputSet.model;
             nwall = absfilm.inputSet.geometry.NWALL;                       % Number of walls
-            C = model.VAPORFRICCST;                                        % [-] Friction constant
+            %C = model.VAPORFRICCST;                                        % [-] Friction constant
+            Re_vap = absfilm.mix.vapor.RE(zIdx);                            %Vapor Reynolds Number
+            C = (3.6 * log10(6.9./Re_vap)).^(-2);
+            
 
             switch model.VAPORFRIC
                 case InputEnums.VAPORFRIC.CONSTANT

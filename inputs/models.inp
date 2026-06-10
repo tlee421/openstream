@@ -93,7 +93,7 @@ OAF        ! Onset of annular flow model                                    > WA
 %OAFENTRAINED !                                                              > EQUILIBRIUM
 OAFENTRAINED !                                                              > RATIO
 OAFBASERATIO !                                                              > 0.2
-OAFFILMSPLIT !                                                              > RATIO
+OAFFILMSPLIT !                                                              > EQUILIBRIUM
 THINFILMFRIC !                                                              > TRACE
 MOMENTFILM !                                                                > ALGEBRAIC
 MOMENTBASE !                                                                > FULL
@@ -102,6 +102,7 @@ MOMENTDROP !                                                                > sl
 POSFILM !                                                                   > 1
 BASEEQTHICK !                                                               > YPLUS
 OBSWSPLITRATIO !                                                            > 0.98 0.02
+WAKEWIDTH !                                                                 > LARGEOBS
 END
 
 ID         ! Model ID                                                       > MFVALS
@@ -109,8 +110,8 @@ FLUID      ! Fluid ID                                                       > R2
 OAFENTRAINED !                                                              > EQUILIBRIUM
 OAFDROPRATIO ! Drop/Liquid mass flow ratio at onset of annular flow         > 0.0001
 DEPOSITION !                                                                > OKAWA
-ENTRAINMENT !                                                               > OKAWACT
-BASEEQTHICK   ! Equlibrium base film thickness model                        > MFVAL
+ENTRAINMENT !                                                               > NONE
+BASEEQTHICK   ! Equlibrium base film thickness model                        > RISO
 EQSTROUHAL   ! Equilibrium strouhal number model                            > MFVAL
 OAFFILMSPLIT  ! Film mass flow split model at onset of annular flow         > EQUILIBRIUM
 OAFBASERATIO  ! Base/Film mass ratio at onset of annular flow [-]           > 0.1
@@ -120,4 +121,6 @@ MOMENTFILM    ! Film momentum model                                         > FU
 VAPORFRIC    ! Interfacial friction factor model                            > WALLISTHICK
 THINFILMTHICK ! minimum film thickness                                      > 5E-9
 OAFTRANSITION !                                                             > 0.1 -0.1
+OBSWSPLITRATIO !                                                            > 0.97 0.03
+WAKEWIDTH !                                                                 > LARGEOBS
 END

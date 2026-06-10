@@ -316,7 +316,7 @@ classdef InputSet
 
         end
 
-        function obj = SplitBySpanPosition(obj, wallIdx, spanPositions)
+        function obj = SplitBySpanPosition(obj, wallIdx, spanPositions, obsSolver)
         % SPLITBYSPANPOSITION Splits an inputSet by axialPositions
         %
         %   This function allows a simulation to be split up into
@@ -335,8 +335,30 @@ classdef InputSet
             totalPerim = obj.geometry.PERIM(wallIdx);
     
             % Wake track perim
-            wakeTrackPerim = spanPositions(3)-spanPositions(2);
-            
+            switch obj.model.WAKEWIDTH
+                case InputEnums.WAKEWIDTH.OBSWIDTH
+                % Obstruction perimeter model
+                    wakeTrackPerim = spanPositions(3)-spanPositions(2);    % [m] wake width
+
+                case InputEnums.WAKEWIDTH.LARGEOBS
+                % MFVAL large-obs closure model
+                    film = obsSolver.solutionSets(1).solver.film;          % film object for pre obstruction track
+                    Re_array = film.RE;                                    % [-] array of reynolds numbers
+                    Re = Re_array(end,wallIdx);                            % [-] film reynolds number just pre obs
+
+                    tau_i_array = abs(film.FVAPOR);                        % [Pa] array of interfacial shear stress on film
+                    tau_i = tau_i_array(end,wallIdx);                      % [Pa] interfacial shear stress on film just pre obs
+
+                    tau_grav_array = abs(film.FGRAV);                      % [Pa] array of gravitation force on film
+                    tau_grav = tau_grav_array(end, wallIdx);               % [Pa] Area averaged gravitational force on film
+
+                    SWR = tau_i/tau_grav;                                  % Film shear to weight ratio just pre-obs
+                    W_half = (1.475 * Re^0.085 * SWR^0.22)/1000;           % [m] Large Obs wake width closure relation. See NNL FY2025 Task 10 modeling report equation 11
+                                                                           % NOTE: A different Re definition is used in the NNL report (1/4 the value used here), coefficient 
+                                                                           % was changed to 1.475 from 1.66 value in report to reflect this 
+                    wakeTrackPerim = W_half * 2;                           % [m] wake width
+            end
+
             % Non-wake perim 
             nonWakeTrackPerim = spanPositions(4)-wakeTrackPerim;
     
