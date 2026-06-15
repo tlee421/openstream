@@ -107,9 +107,9 @@ END
 
 ID         ! Model ID                                                       > MFVALS
 FLUID      ! Fluid ID                                                       > R245fa
-OAFENTRAINED !                                                              > EQUILIBRIUM
+OAFENTRAINED !                                                              > RATIO
 OAFDROPRATIO ! Drop/Liquid mass flow ratio at onset of annular flow         > 0.0001
-DEPOSITION !                                                                > OKAWA
+DEPOSITION !                                                                > NONE
 ENTRAINMENT !                                                               > NONE
 BASEEQTHICK   ! Equlibrium base film thickness model                        > RISO
 EQSTROUHAL   ! Equilibrium strouhal number model                            > MFVAL
@@ -119,8 +119,8 @@ THINFILMFRIC  ! Wall friction model used for the film                       > TR
 RETRANSITION  ! Assumed transition from laminar to turbulent wall friction  > 1000
 MOMENTFILM    ! Film momentum model                                         > FULL
 VAPORFRIC    ! Interfacial friction factor model                            > WALLISTHICK
-THINFILMTHICK ! minimum film thickness                                      > 5E-9
+THINFILMTHICK ! minimum film thickness                                      > 1E-5
 OAFTRANSITION !                                                             > 0.1 -0.1
-OBSWSPLITRATIO !                                                            > 0.97 0.03
+OBSWSPLIT !                                                                 > 0.75
 WAKEWIDTH !                                                                 > LARGEOBS
 END

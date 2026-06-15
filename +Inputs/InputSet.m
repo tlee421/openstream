@@ -357,6 +357,7 @@ classdef InputSet
                                                                            % NOTE: A different Re definition is used in the NNL report (1/4 the value used here), coefficient 
                                                                            % was changed to 1.475 from 1.66 value in report to reflect this 
                     wakeTrackPerim = W_half * 2;                           % [m] wake width
+                    display(wakeTrackPerim)
             end
 
             % Non-wake perim 

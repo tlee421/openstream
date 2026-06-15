@@ -2,7 +2,7 @@ TIME      ! Time [s]                                                       > 0
 PRESSURE  ! System pressure [Pa]                                           > 150000
 HIN       ! Inlet enthalpy [J/kg]                                          > 385011
 MFLOW     ! Mass flow rate [kg/s]                                          > 0.06429
-POWER     ! Total power [W]                                                > 495.18
+POWER     ! Total power [W]                                                > 495.1870
 WMESH     ! Relative power distribution(s) [-]                             > 0.2625 0.2625
 WPOWER    ! Relative power distribution(s) [-]                             > 1.0 1.0 
 END

@@ -278,17 +278,46 @@ classdef (Abstract) AbstractField < matlab.mixin.Copyable
                                 % Determine obstruction wall id
                                 wallID = srcObj.inputSet.obs(1).WALL;
 
+                                %Determine obstruction diameter
+                                obsPerim = srcObj.inputSet.obs(1).DIAMETER;
+                                
+                                %Determine perimeter of wall obs is on
+                                wallPerim = srcObj.inputSet.geometry.PERIM(wallID);
+
+                                %Wake perimeter
+                                wakeWidth = targetObj.inputSet.geometry.PERIM(wallID +1);
+                                
+                                %Determine ratio of obs perim to wall perim
+                                perimRatio = obsPerim/wallPerim;
+
                                 % source value
                                 srcVal = srcObj(i).(propNames{j})(end,:);
 
                                 % Split srcVal at wallID to 2
                                 % ex. if wallID ==1 , targetVal(:,[1,2])
                                 % will correspond to srcVal(:,1)
-                                if propNames{j} == 'W'
-                                    massSplitRatio = srcObj.inputSet.model.OBSWSPLITRATIO;
-                                    massSplitRatio = massSplitRatio.'./sum(massSplitRatio);
-                                    
-                                    targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2).*massSplitRatio, srcVal(:,wallID+1:end)];
+                                if propNames{j} == 'W' 
+                                    %Scalar value for how much mass incipient on the obstruction travels into wake
+                                    massSplit = srcObj.inputSet.model.OBSWSPLIT;
+                                    %Ratio of mass that enters wake to total mass
+                                    wakeMassRatio= massSplit * perimRatio;
+                                    %Create array of ratios of mass in each track to total mass on wall
+                                    massSplitRatios= [1-wakeMassRatio,wakeMassRatio];
+                                    display(massSplitRatios)
+                                    %Multiply incoming total mass by split ratios to determine mass in each track
+                                    targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2).*massSplitRatios, srcVal(:,wallID+1:end)];
+                                elseif propNames{j} == 'U'
+                                    %Scale velocity value according to equilibriums model assumption (tau_i = tau_w)
+                                    %This is not meant to be exact but, rather to initialize the velocity post obs to a more representative value than the pre obs velocity
+
+                                    %Ratio of volumetric flowrates post and pre obs
+                                    q_ratio = wakeMassRatio * wallPerim/wakeWidth; 
+                                    % Scale velocity relative to change in volumetric flow rate based on equilibriums assumption
+                                    v_ratio = q_ratio ^ (1/2);
+                                    %Store as array of multipliers, assume free stream velocity is unchanged
+                                    v_ratios = [1 , v_ratio];
+                                    %Multiply incoming velocities by ratios to determine initial velocity in each track
+                                    targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2).*v_ratios, srcVal(:,wallID+1:end)];
                                 else
                                     targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2), srcVal(:,wallID+1:end)];
                                 end
