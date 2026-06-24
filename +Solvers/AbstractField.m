@@ -303,7 +303,6 @@ classdef (Abstract) AbstractField < matlab.mixin.Copyable
                                     wakeMassRatio= massSplit * perimRatio;
                                     %Create array of ratios of mass in each track to total mass on wall
                                     massSplitRatios= [1-wakeMassRatio,wakeMassRatio];
-                                    display(massSplitRatios)
                                     %Multiply incoming total mass by split ratios to determine mass in each track
                                     targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2).*massSplitRatios, srcVal(:,wallID+1:end)];
                                 elseif propNames{j} == 'U'

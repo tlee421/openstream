@@ -16,9 +16,13 @@ classdef Obstruction < Inputs.Input
         SIDELENGTH (3,1) double  {mustBePositive,mustBeNonempty}           = [1 1 1].*1E-3         % Side lengths [m] (from pointing vertex, CW)
         POINTANGLE (1,1) double  {mustBeNumeric,mustBeNonempty}            = 0                     % Point direction against flow direction (0) [deg]
 
+        %WALL PROPERTIES (for heat transfer model)
+        WALLSHAPE  (1,1) InputEnums.WALLSHAPE                              = 'PLANAR'              % Wall Geometry shape, either 'PLANAR' or 'CYLINDRICAL'
+        WALLTHICK  (1,1) double  {mustBePositive,mustBeNonempty}           = 0.003                 % Thickness of wall [m]
+
         % Calculated properties
         LENGTH     (1,1) double  {mustBePositive,mustBeNonempty}           = 1                     % Axial length [m]
-        WIDTH     (1,1) double  {mustBePositive,mustBeNonempty}            = 1                     % Spanwise width [m]
+        WIDTH      (1,1) double  {mustBePositive,mustBeNonempty}           = 1                     % Spanwise width [m]
         AREA       (1,1) double  {mustBePositive,mustBeNonempty}           = 1                     % Coolant area [m^2] 
         PERIM      (1,:) double  {mustBePositive,mustBeNonempty}           = 1                     % Perimeters [m]
         NWALL      (1,1) double  {mustBePositive,mustBeNonempty}           = 1                     % Number of walls [-] TODO: consider removing this property

@@ -90,7 +90,7 @@ VOID       ! Void fraction model                                            > sl
 SLIP       ! Phase velocity ratio [-]                                       > 1.15
 OAFDROPRATIO ! Drop/Liquid mass flow ratio at onset of annular flow         > 0.5
 OAF        ! Onset of annular flow model                                    > WALLIS
-%OAFENTRAINED !                                                              > EQUILIBRIUM
+%OAFENTRAINED !                                                             > EQUILIBRIUM
 OAFENTRAINED !                                                              > RATIO
 OAFBASERATIO !                                                              > 0.2
 OAFFILMSPLIT !                                                              > EQUILIBRIUM
@@ -99,9 +99,9 @@ MOMENTFILM !                                                                > AL
 MOMENTBASE !                                                                > FULL
 MOMENTWAVE !                                                                > FULL
 MOMENTDROP !                                                                > slip
-POSFILM !                                                                   > 1
+POSFILM !                                                                   > 3
 BASEEQTHICK !                                                               > YPLUS
-OBSWSPLITRATIO !                                                            > 0.98 0.02
+OBSWSPLIT !                                                                 > 3
 WAKEWIDTH !                                                                 > LARGEOBS
 END
 
@@ -111,16 +111,16 @@ OAFENTRAINED !                                                              > RA
 OAFDROPRATIO ! Drop/Liquid mass flow ratio at onset of annular flow         > 0.0001
 DEPOSITION !                                                                > NONE
 ENTRAINMENT !                                                               > NONE
-BASEEQTHICK   ! Equlibrium base film thickness model                        > RISO
+BASEEQTHICK   ! Equlibrium base film thickness model                        > YPLUS
 EQSTROUHAL   ! Equilibrium strouhal number model                            > MFVAL
 OAFFILMSPLIT  ! Film mass flow split model at onset of annular flow         > EQUILIBRIUM
 OAFBASERATIO  ! Base/Film mass ratio at onset of annular flow [-]           > 0.1
 THINFILMFRIC  ! Wall friction model used for the film                       > TRACE
 RETRANSITION  ! Assumed transition from laminar to turbulent wall friction  > 1000
-MOMENTFILM    ! Film momentum model                                         > FULL
-VAPORFRIC    ! Interfacial friction factor model                            > WALLISTHICK
-THINFILMTHICK ! minimum film thickness                                      > 1E-5
+MOMENTFILM    ! Film momentum model                                         > ALGEBRAIC
+VAPORFRIC     ! Interfacial friction factor model                           > WALLISTHICK
 OAFTRANSITION !                                                             > 0.1 -0.1
-OBSWSPLIT !                                                                 > 0.75
+OBSWSPLIT !                                                                 > 0.2
 WAKEWIDTH !                                                                 > LARGEOBS
+BASEYPLUS !                                                                 > 5 
 END

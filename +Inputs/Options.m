@@ -63,7 +63,7 @@ classdef Options < Inputs.Input
         RELAXWW          (1,1) double  {mustBeInRange(RELAXWW,0,1)}        = 0.5                   % Relaxation factor for the wave mass conservation equation [-]
         RELAXUW          (1,1) double  {mustBeInRange(RELAXUW,0,1)}        = 0.2                   % Relaxation factor for the wave momentum conservation equation [-]
         RELAXFW          (1,1) double  {mustBeInRange(RELAXFW,0,1)}        = 0.5                   % Relaxation factor for the wave number conservation equation [-]
-
+        
     end
 
     methods

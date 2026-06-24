@@ -28,6 +28,7 @@ classdef ObstructionSolver < Solvers.AbstractSolver
         STATE                                                               = Solvers.SolverState.UNSOLVED
         solverType
         SOLVERMODE                                                          = Solvers.SolverMode.NEW
+        htSolution
      end
 
     methods
@@ -107,7 +108,7 @@ classdef ObstructionSolver < Solvers.AbstractSolver
 
             % Split the solution into three parts: 
             
-            %%
+            
             % 1. Before the obstruction
             obsSolver.solutionSets(1) = SolutionSet( ...
                                             "NONOBS", ...
@@ -130,7 +131,7 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             obsSolver.solutionSets(1).setSolver(stepSolver(1));
             
 
-            %%
+            
             % 2. Along the obstruction
             
             % Update inputSet P
@@ -172,7 +173,7 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             obsSolver.solutionSets(2).setSolver(stepSolver(2));
             %return
 
-            %%
+            
             %   3. After the obstruction
 
             % Split post-obs segment into two tracks
@@ -214,6 +215,223 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             % Store stepSolver to solutionset
             obsSolver.solutionSets(3).setSolver(stepSolver(3));
 
+
+            % 4. Convergence checks 
+            %Check for convergence of all three segments
+            obsSolver.STATE = SolverState.SOLVEDCONVERGED; %Assume solver converged initially 
+            for i = 1: length(obsSolver.solutionSets)
+                if obsSolver.solutionSets(i).solver.STATE == SolverState.SOLVEDCONVERGED %if segment converged then continue
+                    continue
+                elseif obsSolver.solutionSets(i).solver.STATE == SolverState.INITIALSTEPCONVERGED
+                    continue
+                else
+                    obsSolver.STATE = SolverState.SOLVEDNOTCONVERGED; %if one segment isnt converged set obsSolver.STATE to not converged
+                end
+            end
+            %Print message corresponding to convergence result
+            if obsSolver.STATE == SolverState.SOLVEDCONVERGED
+                disp('------------------------------------------- Obstruction Solver Converged -------------------------------------------')
+            else
+                disp('------------------------------------------- Obstruction Solver Failed to Converge -------------------------------------------')
+            end
+        end
+
+        function solveWallHT(obsSolver)
+            %Solves wall HT downstream of the obstruction
+            import Solvers.SolverState
+            import Solvers.Obstruction.WallHT.*
+
+            % 1. Check for convergence of obsSolver object before trying to run wall HT solver
+            if obsSolver.STATE ~= SolverState.SOLVEDCONVERGED
+                error('Obstruction solver not converged, aborting wall heat transfer calculation')
+            end
+            
+            % 2. Create input arguments for HT functions
+            obs = obsSolver.originalInputset.obs(1);                       % Initialize obstruction object, assume only one obs for now
+            model = obsSolver.inputSet(3).model;                           % Initialize model file
+            solver = obsSolver.solutionSets(3).solver;                     % Initialize solver file
+            inputSet_wake = obsSolver.solutionSets(3).inputSet;            % Initialize input set file
+
+            wallIdx = obs.WALL;                                            % Index of wall obs is on
+            numZ = solver.NZ;                                              % Number of axial nodes 
+            length = inputSet_wake.geometry.LENGTH;                        % Length of heated section
+            W = obsSolver.originalInputset.geometry.PERIM(wallIdx) / 2;    % [m] half width of wall obs is on
+            th = model.WALLTHICK;                                          % [m] thickness of wall 
+            k_wall = model.KWALL;                                          % [W/m-k] thermal conductivity of wall
+            T_amb = model.TAMB;                                            % [K] ambient temperature
+            T_sat = solver.fluid.TSAT;                                     % [K] saturation temperature of fluid
+
+            M = model.MNODEHT;                                             % [-] number of nodes in the x (lateral) direction
+            N = model.NNODEHT;                                             % [-] number of nodes in the y (wall normal) direction
+
+            % 3. Compute Wake and Free Stream HTC
+            htc_wet = solver.film.HTC;                                     %[W/m^2-K] compute wall HTC's    
+           
+            % 4. Compute ambient air HTC
+            htc_amb = 4.53;                                                %[W/m^2-K] htc between outer surface of wall and ambient temp  
+
+            % 5. Loop through axial positions and compute wall temperature distribution
+            w_free = inputSet_wake.geometry.PERIM(1);                      % for now assume free stream width is equal to hydrodynamic width
+            q_flux_array = solver.film.HFLUX;                              % [W/m^2] wall heat flux 
+            T_full = zeros(2*M,N,numZ);                                    % [K] Temperature distribution
+            T_center = zeros(numZ,1);                                      % [K] Centerline temperature
+            q_bot_total = zeros(numZ,1);                                   % [W] total heat flux out of surface exposed to ambient
+            q_bot = zeros(2*M,numZ);                                       % [W] array of heat values out of surface exposed to ambiente
+            q_top = zeros(2*M,numZ);                                       % [W] array of heat values out of surface exposed to flow
+            q_top_total = zeros(numZ,1);                                   % [W] total heat out of surface exposed to flow
+            for i = 1:numZ
+                q_flux = mean(q_flux_array(i,:));                          % The heat fluxes on each wall should be identical but for some reason if they are not take the average
+                htc_fs = htc_wet(i,1);                                     % free stream HTC
+                htc_w = htc_wet(i,2);                                       
+                [x_full,y,T_full(:,:,i),T_center(i),q_bot(:,i),q_bot_total(i),q_top(:,i),q_top_total(i)]=ftoglass_ann_optim(M,N,W,th,k_wall,length,q_flux,w_free,htc_w,htc_fs,htc_amb,T_sat,T_amb);
+            end
+            
+            % 6. Assign computed values to obssolver.htSolution object
+            obsSolver.htSolution.xfull=x_full;
+            obsSolver.htSolution.y=y;
+            obsSolver.htSolution.temperature = T_full;
+            obsSolver.htSolution.centerTemp=T_center;
+            obsSolver.htSolution.htAmbient=q_bot;
+            obsSolver.htSolution.totalHtAmbient=q_bot_total;
+            obsSolver.htSolution.htFlow=q_top;
+            obsSolver.htSolution.totalHtFlow=q_top_total;
+        end
+
+       
+        function plotWallTemperature(obsSolver)
+            %Creates plot of wall temperature from the heat transfer solution
+            
+            % --- Check for existence of heat transfer solution object within obsSolver ---
+            if isempty(obsSolver.htSolution) || ~isfield(obsSolver.htSolution, 'temperature')
+                error('Wall heat transfer solution has not been computed yet, please run obsSolver.solveWallHT() first')
+            end
+            
+            % ---  Explicitly declare handles for nested function scoping ---
+            h_img = [];
+            h_line = [];
+            h_contour = [];
+            
+            % --- Pull data from htSolution ---
+            T_full         = obsSolver.htSolution.temperature;    % [2M x N x numZ]
+            x_full         = obsSolver.htSolution.xfull * 100;   % [cm] lateral positions
+            y              = obsSolver.htSolution.y * 100;        % [cm] wall-normal positions
+            numZ           = size(T_full, 3);
+            channel_length = obsSolver.solutionSets(3).inputSet.geometry.LENGTH;
+            z_nodes        = linspace(0, channel_length, numZ) * 100;  % [cm] axial positions
+        
+            % --- Global color limits ---
+            clim_min = min(T_full(:));
+            clim_max = max(T_full(:));
+        
+            % --- Nth node temperature (outer wall surface) ---
+            T_Nth = squeeze(T_full(:, end, :));                   % [2M x numZ]
+        
+            % --- Figure layout ---
+            fig = figure('Name', 'Wall Temperature Distribution', 'NumberTitle', 'off');
+        
+            ax_top = subplot(2, 1, 1);
+            ax_bot = subplot(2, 1, 2);
+        
+            % Adjust subplot positions to make room for controls
+            set(ax_top, 'Position', [0.10, 0.58, 0.75, 0.36]);
+            set(ax_bot, 'Position', [0.10, 0.22, 0.75, 0.28]);
+        
+            % --- Axial slice slider ---
+            z_init = round(numZ / 2);
+            uicontrol('Style', 'text', 'Units', 'normalized', ...
+                'Position', [0.05, 0.09, 0.10, 0.03], 'String', 'Axial Node:');
+            slider = uicontrol('Style', 'slider', ...
+                'Min', 1, 'Max', numZ, 'Value', z_init, ...
+                'SliderStep', [1/(numZ-1), 10/(numZ-1)], ...
+                'Units', 'normalized', ...
+                'Position', [0.15, 0.09, 0.70, 0.03]);
+            val_label = uicontrol('Style', 'text', 'Units', 'normalized', ...
+                'Position', [0.86, 0.09, 0.10, 0.03], ...
+                'String', sprintf('z=%.2fcm', z_nodes(z_init)));
+        
+            % --- Lateral bounds text inputs  ---
+            x_min_init = 3;                                                %[cm]
+            x_max_init = 6.6;                                              %[cm]
+        
+            uicontrol('Style', 'text', 'Units', 'normalized', ...
+                'Position', [0.05, 0.05, 0.08, 0.03], 'String', 'x min (cm):');
+            edit_xmin = uicontrol('Style', 'edit', 'Units', 'normalized', ...
+                'Position', [0.13, 0.05, 0.12, 0.03], ...
+                'String', sprintf('%.2f', x_min_init), ...
+                'Callback', @(s,e) updatePlots());
+        
+            uicontrol('Style', 'text', 'Units', 'normalized', ...
+                'Position', [0.27, 0.05, 0.08, 0.03], 'String', 'x max (cm):');
+            edit_xmax = uicontrol('Style', 'edit', 'Units', 'normalized', ...
+                'Position', [0.35, 0.05, 0.12, 0.03], ...
+                'String', sprintf('%.2f', x_max_init), ...
+                'Callback', @(s,e) updatePlots());
+        
+            % -------------------------------------------------------------------------
+            % --- INITIAL PLOT SETUP ---
+            % -------------------------------------------------------------------------
+            % Top Plot Setup
+            x_mask_init = x_full >= x_min_init & x_full <= x_max_init;
+            h_img = imagesc(ax_top, z_nodes, x_full(x_mask_init), T_Nth(x_mask_init, :));
+            axis(ax_top, 'xy'); colormap(ax_top, 'turbo'); set(ax_top, 'CLim', [clim_min, clim_max]);
+            cb1 = colorbar(ax_top); ylabel(cb1, 'Temperature (K)');
+            xlabel(ax_top, 'Axial Position z (cm)'); ylabel(ax_top, 'Lateral Position x (cm)');
+            title(ax_top, 'Temperature on Wetted Surface [K]');
+            
+            hold(ax_top, 'on');
+            h_line = xline(ax_top, z_nodes(z_init), '--k', 'LineWidth', 1.5);
+            hold(ax_top, 'off');
+        
+            % Bottom Plot Setup
+            colormap(ax_bot, 'turbo');
+            cb2 = colorbar(ax_bot); ylabel(cb2, 'Temperature (K)');
+            xlabel(ax_bot, 'Lateral Position x (cm)'); ylabel(ax_bot, 'Wall-Normal Position y (cm)');
+            set(ax_bot, 'CLim', [clim_min, clim_max]);
+        
+            % --- Listener for real-time smooth slider tracking ---
+            addlistener(slider, 'Value', 'PostSet', @(s,e) updatePlots());
+        
+            % --- Run the initial draw at the very end of setup ---
+            updatePlots();
+        
+            % -------------------------------------------------------------------------
+            % --- NESTED UPDATE FUNCTION ---
+            % -------------------------------------------------------------------------
+            function updatePlots()
+                zSel  = round(slider.Value);
+                x_min = str2double(edit_xmin.String);
+                x_max = str2double(edit_xmax.String);
+        
+                if isnan(x_min) || isnan(x_max) || x_min >= x_max
+                    return;
+                end
+        
+                x_mask = x_full >= x_min & x_full <= x_max;
+                x_sub  = x_full(x_mask);
+                
+                % 1. Update text label
+                val_label.String = sprintf('z=%.2fcm', z_nodes(zSel));
+        
+                % 2. Update Top Plot
+                T_Nth_sub = T_Nth(x_mask, :);
+                set(h_img, 'YData', x_sub, 'CData', T_Nth_sub); 
+                set(ax_top, 'YLim', [x_min, x_max]); 
+                h_line.Value = z_nodes(zSel);        
+        
+                % 3. Update Bottom Plot (Contour Fix for Symmetric/Mirrored Channels)
+                T_slice = squeeze(T_full(x_mask, :, zSel));
+                
+                [x_contour, unique_idx] = unique(x_sub);
+                T_contour = T_slice(unique_idx, :); 
+                
+                if ~isempty(h_contour); delete(h_contour); end
+        
+                hold(ax_bot, 'on');
+                [~, h_contour] = contourf(ax_bot, x_contour, y, T_contour.', 10, 'LineColor', 'none');
+                hold(ax_bot, 'off');
+                        
+                title(ax_bot, sprintf('Cross-Section at z = %.2f cm (node %d)', z_nodes(zSel), zSel));
+            end
         end
 
         function plotter = plott(obsSolver, zIdx,opts)

@@ -1,13 +1,10 @@
 ID          !                                                              > DEFAULT
-ERRORWF     !                                                              > 1E-4
-SSCONFWF    !                                                              > 1E-4
-MAXITER     !                                                              > 100
-RELAXUB     !                                                              > 0.05
 END
 
 ID          !                                                              > OBS
 RELAXUF     !                                                              > 0.1
-ERRORUF     !                                                              > 1E-2
+SSCONVUF     !                                                             > 1E-2
+ERRORUF      !                                                             > 1E-2
 END
 
 ID          !                                                              > STEADY

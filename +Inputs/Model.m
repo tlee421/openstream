@@ -122,6 +122,8 @@ classdef Model < Inputs.Input
         THINFILMTHICK    (1,1) double  {mustBePositive}                    = 1E-4                            % Minimum thin film thickness [m]
         FWLAM            (1,1) double  {mustBePositive}                    = 16                              % Numerator in laminar wall friction equation [m]
 
+        MINSTABLETHICK   (1,1) InputEnums.MINSTABLETHICK                   = 'CHUN'                          % Minimum stable film thickness before ruprture [m]
+
         MOMENTDROP       (1,1) InputEnums.MOMENTDROP                       = 'SLIP'                          % Drop momentum conservation model selected from :class:`InputEnums.MOMENTDROP`
         DROPSLIP         (1,1) double  {mustBePositive}                    = 1.0                             % Drop/vapor velocity ratio [-]
         DROPDIAM         (1,1) double  {mustBePositive}                    = 1E-3                            % Drop diameter [mm]
@@ -152,8 +154,22 @@ classdef Model < Inputs.Input
 
         % Obstruction solver models
         
-        OBSWSPLIT         (1,1) double  {mustBeNonnegative}                 = 0.5                             % Ratio of mass incipient on the obstruction that travels into the wake
+        OBSWSPLIT        (1,1) double  {mustBeNonnegative}                 = 0.5                             % Ratio of mass incipient on the obstruction that travels into the wake
         WAKEWIDTH        (1,1) InputEnums.WAKEWIDTH                        = 'OBSWIDTH'                      % Wake track width
+
+        % Wall heat transfer models
+        WALLSHAPE  (1,1) InputEnums.WALLSHAPE                              = 'PLANAR'                        % Wall Geometry shape, either 'PLANAR' or 'CYLINDRICAL'
+        WALLTHICK  (1,1) double  {mustBePositive,mustBeNonempty}           = 0.003                           % Thickness of wall [m]
+        KWALL      (1,1) double  {mustBePositive,mustBeNonempty}           = 1.2                             % Wall thermal conductivity [W/m-K]
+        TAMB       (1,1) double  {mustBePositive,mustBeNonempty}           = 293.15                          % Ambient temperature [K]
+        
+        MNODEHT          double  {mustBeScalarOrEmpty,mustBeInteger,mustBePositive}...                       % Number of nodes in lateral (x) direction in HT model 
+                                                                           = 100
+        NNODEHT          double  {mustBeScalarOrEmpty,mustBeInteger,mustBePositive}...                       % Number of nodes in thicknesss (y) direction in HT model
+                                                                           = 100
+
+
+
     end
 
     properties (Constant)

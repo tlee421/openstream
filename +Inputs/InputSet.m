@@ -49,8 +49,8 @@ classdef InputSet
 
                 opts.bcFilePath         {isfile}            = ''           % Boundary condition input file (inp/json)
 
-                opts.obsFilePath        {isfile}            = ''        % Obstruction input file (inp/json)
-                opts.obsIDs             {mustBeText}        = ''        % Obstruction IDs, multiple allowed
+                opts.obsFilePath        {isfile}            = ''           % Obstruction input file (inp/json)
+                opts.obsIDs             {mustBeText}        = ''           % Obstruction IDs, multiple allowed
 
                 opts.LOGMODE (1,1)      Session.LogMode     = Session.LogMode.LOGTOCONSOLEONLY
                 opts.sessionName        {isStringScalar}    = ""           % Session name
@@ -357,7 +357,6 @@ classdef InputSet
                                                                            % NOTE: A different Re definition is used in the NNL report (1/4 the value used here), coefficient 
                                                                            % was changed to 1.475 from 1.66 value in report to reflect this 
                     wakeTrackPerim = W_half * 2;                           % [m] wake width
-                    display(wakeTrackPerim)
             end
 
             % Non-wake perim 

@@ -173,6 +173,8 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             C = 0.005;                                                     % [-]  Wall Friction constant
             Re_transition = model.RETRANSITION;                            % [-]  Reynolds number at which transition to turbulence is assumed
             f_w_lam = model.FWLAM;                                         % Factor in numerator in laminar wall friction calculation
+            RE = max(absfilm.RE(zIdx), 1E-6);                              % [-] Film Reynolds number
+            
 
             switch model.THINFILMFRIC
                 case InputEnums.THINFILMFRIC.TURBULENT
@@ -184,18 +186,20 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
                     Cw = absfilm.CW_LAM_CALC(zIdx, C);                     % Call private method
 
                 case InputEnums.THINFILMFRIC.TRANSITION
-                    RE = max(absfilm.RE(zIdx), 1E-6);
                     if RE < Re_transition
                         Cw = f_w_lam./RE;                                  % Laminar wall friction factor
                     else
                         Cw = (3.6 * log10(6.9./RE)).^(-2);                  % Colebrook equation for turbulent wall friction factor
                     end 
                 case InputEnums.THINFILMFRIC.TRACE
-                    RE = max(absfilm.RE(zIdx), 1E-6);                      % [-] Film Reynolds number
                     f_lam = f_w_lam./RE;                                   %Laminar wall friction factor for pipe flow
                     f_turb = (3.6 * log10(6.9./RE)).^(-2);                 %Turbulent friction factor for a smooth pipe according to Haalands approximation of the Colebrook equation:
                                                                            %S.E. Haaland, "Simple and Explicit Formulas for the Friction Factor in Turbulent Pipe Flow," J. Fluids Eng., 105, 89-90, 1983.
-                    Cw = (f_lam.^3 + f_turb.^3).^(1/3);                    %TRACE model for annular flow friction factor. 
+                    
+                    mask = RE > 100;                                       %For RE<100 the TRACE model diverges from CW=16/RE so use CW=16/RE directly for small RE
+                    Cw = f_lam;
+                    Cw(mask) = (f_lam(mask).^3 + f_turb(mask).^3).^(1/3); %TRACE model for annular flow friction factor. 
+                   
             end
 
             Cw  = absfilm.mix.AFDISTR(C,Cw,zIdx);
@@ -221,6 +225,7 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
 
         function thick = YPLUS2THICK(absfilm, yplus, zIdx)
             %YPLUS2THICK Thickness based on wall unit value [m]
+            %Uses film velocity as friction velocity
 
             if nargin < 3, zIdx = (1:absfilm(1).NZ).'; end
 
@@ -229,6 +234,21 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             nu_ls = mu_ls./rho_ls;                                         % Saturated liquid kinematic viscosity
 
             thick = yplus./absfilm.UWALL(zIdx).*nu_ls;                     % Converted thickness [m]
+        end
+
+        function thick = YPLUSTHICKTAUW(absfilm, yplus, zIdx)
+            %YPLUSTHICKTAUW Thickness based on wall unit value [m]
+            % Uses the wall shear stress based friction velocity
+
+            if nargin < 3, zIdx = (1:absfilm(1).NZ).'; end
+
+            rho_ls = absfilm.fluid.RHOF;                                   % Saturated liquid mass density
+            mu_ls = absfilm.fluid.MUF;                                     % Saturated liquid viscosity
+            nu_ls = mu_ls./rho_ls;                                         % Saturated liquid kinematic viscosity
+            tau_w = abs(absfilm.FWALL(zIdx));                                   % Wall sheat stress
+            u_star = (tau_w/rho_ls).^(0.5);                                % Friction velocity
+
+            thick = yplus./u_star.*nu_ls;                     % Converted thickness [m]
         end
 
         function Cv = CV(absfilm,zIdx)
@@ -413,6 +433,72 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
 
             X = 1-absfilm.W(zIdx,:)./absfilm.mix.NEARWALL.W(zIdx,:);
+        end
+
+        function stableThick = STABLETHICK(absfilm, zIdx)
+            % Minimum stable base film thickness [m]
+            %
+            % Computes the minimum thickness a stable film will exist at 
+            % before fracturing into rivulets
+
+            model = absfilm.inputSet.model;
+
+            if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
+
+            switch model.MINSTABLETHICK
+                case InputEnums.MINSTABLETHICK.CHUN
+                    hflux = absfilm.HFLUX(zIdx,:);      % [W/m^2] wall heat flux 
+                    hfg = absfilm.fluid.HFG;                               % [J/kg] latent heat of vaporization
+                    v_f = 1/ (absfilm.fluid.RHOF);                         % [m^3/kg] specific volume of liquid phase
+                    v_g = 1/ (absfilm.fluid.RHOG);                         % [m^3 /kg] specific volume of vapor phase
+                    v_fg = v_g - v_f ;                                     % [m^3 /kg] specific volume difference between vapor and liquid phases
+                    mu_f = absfilm.fluid.MUF;                              % [Pa*s] viscosity of liquid phase
+                    mu_g = absfilm.fluid.MUG;                              % [Pa*s] viscosity of vapor phase
+                    sigma = absfilm.fluid.SIGMA;                           % [N/m] Surface tension 
+                    G = absfilm.mix.liquid.MFLUX(zIdx);                    % [kg/m^2] film mass flux 
+
+                    stableThick = (hflux./(hfg*G)).^0.35 * v_fg*mu_f^2/sigma * 10^(8.8*(mu_g/mu_f)^0.617); %minimum stable film thickness
+
+            end  
+        end
+
+        function htc = HTC(absfilm, zIdx)
+            %HTC Heat transfer coefficient (W/m^2-K) 
+            %
+            % Computes the heat transfer coefficient for wet and dry films
+
+            if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
+
+            model = absfilm.inputSet.model;
+            nwall = absfilm.inputSet.geometry.NWALL;                       % Number of walls
+
+            PR_film = absfilm.fluid.PRANDTLF;                              % [-] Prandtl number for liquid film
+            k_film = absfilm.fluid.KF;                                     % [W/m-k] thermal conductivity of saturated liquid
+            k_vapor = absfilm.fluid.KG;                                    % [W/m-k] thermal conductivity of saturated vapor
+            nu_vap = absfilm.mix.vapor.NU;                                 % [-] Nusselt number of the vapor phase
+            D_h = absfilm.inputSet.geometry.HDIAM;                         % [m] hydraulic diameter of flow channel
+
+            yplus = model.BASEYPLUS;                                       % [-] y-plus value base film is assumed to end at
+            baseThick = absfilm.YPLUSTHICKTAUW(yplus, zIdx);               % [m] thickness of the basefilm
+            %thermThick = baseThick/(PR_film^(1/3));                       % [m] thermal boundary layer thickness
+            thick = absfilm.THICK(zIdx);                                   % [m] film thickness
+            minstableThick = absfilm.STABLETHICK(zIdx);                    % [m] minimum stable film thickness
+
+            % Expand nu_vap from [zIdx x 1] to [zIdx x nwall] so element-wise ops work
+            nu_vap_wall = repmat(nu_vap, 1, nwall);                        % [zIdx x nwall]
+            
+            % Pre-allocate htc
+            htc = zeros(length(zIdx), nwall);                              % [zIdx x nwall]
+            
+            % Boolean masks for each regime (element-wise, covers every [z, wall] pair)
+            mask_dry    = (thick < minstableThick) | (thick == 0);         % film too thin or absent
+            mask_base   = ~mask_dry & (baseThick <= thick);              % base film thinner than film
+            mask_thin   = ~mask_dry & (thick < baseThick);                 % film thinner than base film
+            
+            % Apply HTC formula for each regime
+            htc(mask_dry)  = nu_vap_wall(mask_dry)  .* (k_vapor / D_h);    % [W/m^2-K] dry/unstable
+            htc(mask_base) = k_film ./ baseThick(mask_base);               % [W/m^2-K] base film limits
+            htc(mask_thin) = k_film ./ thick(mask_thin);                   % [W/m^2-K] film limits
         end
     end
 

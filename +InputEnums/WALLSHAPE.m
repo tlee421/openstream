@@ -12,7 +12,6 @@ classdef WALLSHAPE
     % - CYLINDRICAL     — Not yet available, to be implemented in the future 
 
     enumeration
-        PLANAR            % Wake width is equal to obs projected perimeter
-        
+        PLANAR            % Wall has planar geometry
     end
 end
