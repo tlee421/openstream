@@ -156,11 +156,13 @@ classdef Model < Inputs.Input
         
         OBSWSPLIT        (1,1) double  {mustBeNonnegative}                 = 0.5                             % Ratio of mass incipient on the obstruction that travels into the wake
         WAKEWIDTH        (1,1) InputEnums.WAKEWIDTH                        = 'OBSWIDTH'                      % Wake track width
+        DRYWAKEWIDTH     (1,1) InputEnums.DRYWAKEWIDTH                     = 'EMPIRICAL'                     % Dry wake width model 
 
         % Wall heat transfer models
         WALLSHAPE  (1,1) InputEnums.WALLSHAPE                              = 'PLANAR'                        % Wall Geometry shape, either 'PLANAR' or 'CYLINDRICAL'
         WALLTHICK  (1,1) double  {mustBePositive,mustBeNonempty}           = 0.003                           % Thickness of wall [m]
         KWALL      (1,1) double  {mustBePositive,mustBeNonempty}           = 1.2                             % Wall thermal conductivity [W/m-K]
+        WWALL      (1,1) double  {mustBePositive,mustBeNonempty}           = 0.036                           % Width of wall HT is occuring on [m]
         TAMB       (1,1) double  {mustBePositive,mustBeNonempty}           = 293.15                          % Ambient temperature [K]
         
         MNODEHT          double  {mustBeScalarOrEmpty,mustBeInteger,mustBePositive}...                       % Number of nodes in lateral (x) direction in HT model 

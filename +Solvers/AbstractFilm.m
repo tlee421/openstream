@@ -500,6 +500,48 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             htc(mask_base) = k_film ./ baseThick(mask_base);               % [W/m^2-K] base film limits
             htc(mask_thin) = k_film ./ thick(mask_thin);                   % [W/m^2-K] film limits
         end
+
+        function htc_wake = HTCWAKE(absfilm, dry, zIdx)
+            %HTC Heat transfer coefficient (W/m^2-K) 
+            %
+            % Computes the heat transfer coefficient post obstruction
+            % Differs from HTC(absfilm,zIdx) in that dryout is determined
+            % via wake dryout model, not via film thickness. This allows for non-constant width dry wakes
+            %
+            %INPUTS:
+            % dry [zIdx x nwall] boolean of whether this node is dry or not
+
+            if nargin < 3, zIdx = (1:absfilm(1).NZ).'; end
+
+            model = absfilm.inputSet.model;
+            nwall = absfilm.inputSet.geometry.NWALL;                       % Number of walls
+
+            k_film = absfilm.fluid.KF;                                     % [W/m-k] thermal conductivity of saturated liquid
+            k_vapor = absfilm.fluid.KG;                                    % [W/m-k] thermal conductivity of saturated vapor
+            nu_vap = absfilm.mix.vapor.NU;                                 % [-] Nusselt number of the vapor phase
+            D_h = absfilm.inputSet.geometry.HDIAM;                         % [m] hydraulic diameter of flow channel
+
+            yplus = model.BASEYPLUS;                                       % [-] y-plus value base film is assumed to end at
+            baseThick = absfilm.YPLUSTHICKTAUW(yplus, zIdx);               % [m] thickness of the basefilm
+            thick = absfilm.THICK(zIdx);                                   % [m] film thickness
+            
+
+            % Expand nu_vap from [zIdx x 1] to [zIdx x nwall] so element-wise ops work
+            nu_vap_wall = repmat(nu_vap, 1, nwall);                        % [zIdx x nwall]
+            
+            % Pre-allocate htc
+            htc_wake = zeros(length(zIdx), nwall);                         % [zIdx x nwall]
+            
+            % Boolean masks for each regime (element-wise, covers every [z, wall] pair)
+            mask_dry    = dry;                                             % film is dry, this is determined via the dry boolean
+            mask_base   = ~mask_dry & (baseThick <= thick);                % base film thinner than film
+            mask_thin   = ~mask_dry & (thick < baseThick);                 % film thinner than base film
+            
+            % Apply HTC formula for each regime
+            htc_wake(mask_dry)  = nu_vap_wall(mask_dry)  .* (k_vapor / D_h);    % [W/m^2-K] dry/unstable
+            htc_wake(mask_base) = k_film ./ baseThick(mask_base);               % [W/m^2-K] base film limits
+            htc_wake(mask_thin) = k_film ./ thick(mask_thin);                   % [W/m^2-K] film limits
+        end
     end
 
 

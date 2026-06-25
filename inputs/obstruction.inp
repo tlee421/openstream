@@ -8,5 +8,6 @@ ID        ! Obstruction ID                 > LARGEOBS
 WALL      ! Wall index                     > 1
 SHAPE     ! Base shape                     > CIRCLE
 DIAMETER  ! Shape diameter [m]             > 2.5E-3
+RLOCATION ! Relative location on the wall  > 0.8 0.5
 END
 

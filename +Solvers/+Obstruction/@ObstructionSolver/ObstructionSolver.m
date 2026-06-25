@@ -253,9 +253,11 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             inputSet_wake = obsSolver.solutionSets(3).inputSet;            % Initialize input set file
 
             wallIdx = obs.WALL;                                            % Index of wall obs is on
+            nwall = inputSet_wake.geometry.NWALL;                          % Number of walls
             numZ = solver.NZ;                                              % Number of axial nodes 
             length = inputSet_wake.geometry.LENGTH;                        % Length of heated section
-            W = obsSolver.originalInputset.geometry.PERIM(wallIdx) / 2;    % [m] half width of wall obs is on
+            W = model.WWALL/2;                                             % [m] half width of wall obs is on
+            perim = obsSolver.originalInputset.geometry.PERIM(wallIdx);     % [m] perimeter of channel
             th = model.WALLTHICK;                                          % [m] thickness of wall 
             k_wall = model.KWALL;                                          % [W/m-k] thermal conductivity of wall
             T_amb = model.TAMB;                                            % [K] ambient temperature
@@ -265,13 +267,27 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             N = model.NNODEHT;                                             % [-] number of nodes in the y (wall normal) direction
 
             % 3. Compute Wake and Free Stream HTC
-            htc_wet = solver.film.HTC;                                     %[W/m^2-K] compute wall HTC's    
-           
+            w_dryWake = obsSolver.DRYWAKEW;                                % [m] dry wake width
+            dry = w_dryWake ~= 0 ;                                         % create boolean object of whether that node is dry to pass to HTC function
+            dry = repmat(dry,1,nwall);
+
+            htc_general_model = solver.film.HTC;                           % [W/m^2-K] compute HTC's everywhere using general model
+            htc_freestream = htc_general_model(:,wallIdx);                 % [W/m^2-K] grab the freestream HTC values
+
+            htc_wake_model = solver.film.HTCWAKE(dry);                     % [W/m^2-K] compute HTC's everywhere using wake model
+            htc_wake = htc_wake_model(:, wallIdx+1);                       % [W/m^2-K] only use the wake HTC values 
+
             % 4. Compute ambient air HTC
             htc_amb = 4.53;                                                %[W/m^2-K] htc between outer surface of wall and ambient temp  
 
-            % 5. Loop through axial positions and compute wall temperature distribution
-            w_free = inputSet_wake.geometry.PERIM(1);                      % for now assume free stream width is equal to hydrodynamic width
+            % 5. Create array of free stream widths
+            w_free_array = zeros(numZ,1);                                  %initialize free stream width array
+            mask_dry = dry(:,2);                                           % boolean mask if wake is dry
+            w_free_array(mask_dry) = -w_dryWake(mask_dry) + 2*W;           % [m] free stream width when the wake is dry
+            w_free_array(~mask_dry) = W - inputSet_wake.geometry.PERIM(wallIdx+1);  % [m] free stream width when the wake is wet
+
+
+            % 6. Iterate through axial steps and compute 2D temperature profile
             q_flux_array = solver.film.HFLUX;                              % [W/m^2] wall heat flux 
             T_full = zeros(2*M,N,numZ);                                    % [K] Temperature distribution
             T_center = zeros(numZ,1);                                      % [K] Centerline temperature
@@ -279,10 +295,12 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             q_bot = zeros(2*M,numZ);                                       % [W] array of heat values out of surface exposed to ambiente
             q_top = zeros(2*M,numZ);                                       % [W] array of heat values out of surface exposed to flow
             q_top_total = zeros(numZ,1);                                   % [W] total heat out of surface exposed to flow
+
             for i = 1:numZ
                 q_flux = mean(q_flux_array(i,:));                          % The heat fluxes on each wall should be identical but for some reason if they are not take the average
-                htc_fs = htc_wet(i,1);                                     % free stream HTC
-                htc_w = htc_wet(i,2);                                       
+                htc_fs = htc_freestream(i);                                % free stream HTC
+                htc_w = htc_wake(i);                                       % wake HTC
+                w_free = w_free_array(i);                                  % grab single free stream width at each axial position 
                 [x_full,y,T_full(:,:,i),T_center(i),q_bot(:,i),q_bot_total(i),q_top(:,i),q_top_total(i)]=ftoglass_ann_optim(M,N,W,th,k_wall,length,q_flux,w_free,htc_w,htc_fs,htc_amb,T_sat,T_amb);
             end
             
@@ -297,7 +315,43 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             obsSolver.htSolution.totalHtFlow=q_top_total;
         end
 
+        function dryWakeWidth = DRYWAKEW(obsSolver, zIdx)
+            %Computes the dry wake width downstream of the obstruction at each axial location
+            %
+            model = obsSolver.inputSet(3).model;                           % Initialize model object downstream of obs
+            solver = obsSolver.solutionSets(3).solver;                     % Initialize solver object downstream of obs
+            inputSet_wake = obsSolver.solutionSets(3).inputSet;            % Initialize input set object downstream of obs
+            obs = obsSolver.originalInputset.obs(1);                       % Initialize obstruction object, assume only one obs for now
+
+            if nargin < 2, zIdx = (1:solver.NZ).'; end
+            
+            switch model.DRYWAKEWIDTH
+                case InputEnums.DRYWAKEWIDTH.EMPIRICAL
+                    %Initialize parameters to compute obstruction boiling number Bo_obs
+                    wallIdx = obs.WALL;                                    % Index of wall obs is on
+                    m_dot = solver.film.W;                                 % [kg/s] Array of mass flow rate behind obstruction
+                    m_dot_wake_ini= m_dot(1,wallIdx+1);                    % [kg/s] Initial mass flow rate in wake
+                    w_wake  = inputSet_wake.geometry.PERIM(wallIdx+1);     % [m] Width of the hydrodynamic wake
+                    hfg = solver.fluid.HFG;                                % [J/kg] latent heat of evaporation
+                    hflux = solver.film.HFLUX(zIdx,wallIdx+1);             % [W/m^2] wall heat flux within the wake
+                    z_ini = solver.Z(1);                                   % [m] axial position at first node post obstruction
+                    L_obs = solver.Z(zIdx) - z_ini;                        % [m] axial distance from obstruction to node at zIdx
+
+                    Bo_obs = hflux .* w_wake .* L_obs/ (m_dot_wake_ini * hfg); % [-] Wake boiling number
+
+                    wake_ratio_func = -5 + 0.0058*Bo_obs + (6.3325 * Bo_obs.^1.6617)./(0.1719^1.6617 + Bo_obs.^1.6617); %Empirical curve fit for wake ratio as a function of Bo_obs
+                    wake_ratio = max(0, wake_ratio_func); %limit wake ratio to a minimum value of 0
+
+                    dryWakeWidth = w_wake * wake_ratio; %[m] dry wake width
+
+            end
+
+            
+        
+        end
        
+
+
         function plotWallTemperature(obsSolver)
             %Creates plot of wall temperature from the heat transfer solution
             
@@ -306,25 +360,28 @@ classdef ObstructionSolver < Solvers.AbstractSolver
                 error('Wall heat transfer solution has not been computed yet, please run obsSolver.solveWallHT() first')
             end
             
-            % ---  Explicitly declare handles for nested function scoping ---
-            h_img = [];
-            h_line = [];
+            % --- Explicitly declare handles for nested function scoping ---
+            h_pcolor  = [];
+            h_line    = [];
             h_contour = [];
             
             % --- Pull data from htSolution ---
-            T_full         = obsSolver.htSolution.temperature;    % [2M x N x numZ]
-            x_full         = obsSolver.htSolution.xfull * 100;   % [cm] lateral positions
-            y              = obsSolver.htSolution.y * 100;        % [cm] wall-normal positions
+            T_full         = obsSolver.htSolution.temperature;         % [2M x N x numZ]
+            x_full         = obsSolver.htSolution.xfull * 100;        % [cm] lateral positions
+            y              = obsSolver.htSolution.y * 100;            % [cm] wall-normal positions
             numZ           = size(T_full, 3);
             channel_length = obsSolver.solutionSets(3).inputSet.geometry.LENGTH;
-            z_nodes        = linspace(0, channel_length, numZ) * 100;  % [cm] axial positions
+            z_nodes        = linspace(0, channel_length, numZ) * 100; % [cm] axial positions
         
             % --- Global color limits ---
             clim_min = min(T_full(:));
             clim_max = max(T_full(:));
         
             % --- Nth node temperature (outer wall surface) ---
-            T_Nth = squeeze(T_full(:, end, :));                   % [2M x numZ]
+            T_Nth = squeeze(T_full(:, end, :));                        % [2M x numZ]
+        
+            % --- Remove duplicate lateral positions ---
+            [x_unique, unique_idx] = unique(x_full);                   % strictly increasing x values
         
             % --- Figure layout ---
             fig = figure('Name', 'Wall Temperature Distribution', 'NumberTitle', 'off');
@@ -332,7 +389,7 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             ax_top = subplot(2, 1, 1);
             ax_bot = subplot(2, 1, 2);
         
-            % Adjust subplot positions to make room for controls
+            % Adjust subplot positions to make room for slider
             set(ax_top, 'Position', [0.10, 0.58, 0.75, 0.36]);
             set(ax_bot, 'Position', [0.10, 0.22, 0.75, 0.28]);
         
@@ -349,90 +406,72 @@ classdef ObstructionSolver < Solvers.AbstractSolver
                 'Position', [0.86, 0.09, 0.10, 0.03], ...
                 'String', sprintf('z=%.2fcm', z_nodes(z_init)));
         
-            % --- Lateral bounds text inputs  ---
-            x_min_init = 3;                                                %[cm]
-            x_max_init = 6.6;                                              %[cm]
-        
-            uicontrol('Style', 'text', 'Units', 'normalized', ...
-                'Position', [0.05, 0.05, 0.08, 0.03], 'String', 'x min (cm):');
-            edit_xmin = uicontrol('Style', 'edit', 'Units', 'normalized', ...
-                'Position', [0.13, 0.05, 0.12, 0.03], ...
-                'String', sprintf('%.2f', x_min_init), ...
-                'Callback', @(s,e) updatePlots());
-        
-            uicontrol('Style', 'text', 'Units', 'normalized', ...
-                'Position', [0.27, 0.05, 0.08, 0.03], 'String', 'x max (cm):');
-            edit_xmax = uicontrol('Style', 'edit', 'Units', 'normalized', ...
-                'Position', [0.35, 0.05, 0.12, 0.03], ...
-                'String', sprintf('%.2f', x_max_init), ...
-                'Callback', @(s,e) updatePlots());
-        
             % -------------------------------------------------------------------------
             % --- INITIAL PLOT SETUP ---
             % -------------------------------------------------------------------------
             % Top Plot Setup
-            x_mask_init = x_full >= x_min_init & x_full <= x_max_init;
-            h_img = imagesc(ax_top, z_nodes, x_full(x_mask_init), T_Nth(x_mask_init, :));
-            axis(ax_top, 'xy'); colormap(ax_top, 'turbo'); set(ax_top, 'CLim', [clim_min, clim_max]);
-            cb1 = colorbar(ax_top); ylabel(cb1, 'Temperature (K)');
-            xlabel(ax_top, 'Axial Position z (cm)'); ylabel(ax_top, 'Lateral Position x (cm)');
-            title(ax_top, 'Temperature on Wetted Surface [K]');
-            
+            [~, h_pcolor] = contourf(ax_top, z_nodes, x_unique, T_Nth(unique_idx, :), 50, 'LineColor', 'none');
+            axis(ax_top, 'xy');
+            colormap(ax_top, 'turbo');
+            set(ax_top, 'CLim', [clim_min, clim_max]);
+            cb1 = colorbar(ax_top);
+            ylabel(cb1, 'Temperature (C)');
+            xlabel(ax_top, 'Axial Position z (cm)');
+            ylabel(ax_top, 'Lateral Position x (cm)');
+            title(ax_top, 'Temperature on Wetted Surface [C]');
+        
             hold(ax_top, 'on');
-            h_line = xline(ax_top, z_nodes(z_init), '--k', 'LineWidth', 1.5);
+            h_line = xline(ax_top, z_nodes(z_init), '--w', 'LineWidth', 1.5);
             hold(ax_top, 'off');
         
             % Bottom Plot Setup
             colormap(ax_bot, 'turbo');
-            cb2 = colorbar(ax_bot); ylabel(cb2, 'Temperature (K)');
-            xlabel(ax_bot, 'Lateral Position x (cm)'); ylabel(ax_bot, 'Wall-Normal Position y (cm)');
+            cb2 = colorbar(ax_bot);
+            ylabel(cb2, 'Temperature (C)');
+            xlabel(ax_bot, 'Lateral Position x (cm)');
+            ylabel(ax_bot, 'Wall-Normal Position y (cm)');
             set(ax_bot, 'CLim', [clim_min, clim_max]);
         
             % --- Listener for real-time smooth slider tracking ---
             addlistener(slider, 'Value', 'PostSet', @(s,e) updatePlots());
         
-            % --- Run the initial draw at the very end of setup ---
+            % --- Run the initial draw ---
             updatePlots();
         
             % -------------------------------------------------------------------------
             % --- NESTED UPDATE FUNCTION ---
             % -------------------------------------------------------------------------
             function updatePlots()
-                zSel  = round(slider.Value);
-                x_min = str2double(edit_xmin.String);
-                x_max = str2double(edit_xmax.String);
+                zSel = round(slider.Value);
         
-                if isnan(x_min) || isnan(x_max) || x_min >= x_max
-                    return;
-                end
-        
-                x_mask = x_full >= x_min & x_full <= x_max;
-                x_sub  = x_full(x_mask);
-                
                 % 1. Update text label
                 val_label.String = sprintf('z=%.2fcm', z_nodes(zSel));
         
                 % 2. Update Top Plot
-                T_Nth_sub = T_Nth(x_mask, :);
-                set(h_img, 'YData', x_sub, 'CData', T_Nth_sub); 
-                set(ax_top, 'YLim', [x_min, x_max]); 
-                h_line.Value = z_nodes(zSel);        
+                if ~isempty(h_pcolor) && isvalid(h_pcolor)
+                    delete(h_pcolor);
+                end
+                hold(ax_top, 'on');
+                [~, h_pcolor] = contourf(ax_top, z_nodes, x_unique, T_Nth(unique_idx, :), 50, 'LineColor', 'none');
+                hold(ax_top, 'off');
+                set(ax_top, 'CLim', [clim_min, clim_max]);
+                h_line.Value = z_nodes(zSel);
         
-                % 3. Update Bottom Plot (Contour Fix for Symmetric/Mirrored Channels)
-                T_slice = squeeze(T_full(x_mask, :, zSel));
-                
-                [x_contour, unique_idx] = unique(x_sub);
-                T_contour = T_slice(unique_idx, :); 
-                
-                if ~isempty(h_contour); delete(h_contour); end
+                % 3. Update Bottom Plot
+                T_slice   = squeeze(T_full(:, :, zSel));
+                T_contour = T_slice(unique_idx, :);
         
+                if ~isempty(h_contour) && isvalid(h_contour)
+                    delete(h_contour);
+                end
                 hold(ax_bot, 'on');
-                [~, h_contour] = contourf(ax_bot, x_contour, y, T_contour.', 10, 'LineColor', 'none');
+                [~, h_contour] = contourf(ax_bot, x_unique, y, T_contour.', 20, 'LineColor', 'none');
                 hold(ax_bot, 'off');
-                        
+                set(ax_bot, 'CLim', [clim_min, clim_max]);
                 title(ax_bot, sprintf('Cross-Section at z = %.2f cm (node %d)', z_nodes(zSel), zSel));
             end
         end
+
 
         function plotter = plott(obsSolver, zIdx,opts)
             warning('plott not yet available within obstruction branch')

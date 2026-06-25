@@ -120,7 +120,9 @@ RETRANSITION  ! Assumed transition from laminar to turbulent wall friction  > 10
 MOMENTFILM    ! Film momentum model                                         > ALGEBRAIC
 VAPORFRIC     ! Interfacial friction factor model                           > WALLISTHICK
 OAFTRANSITION !                                                             > 0.1 -0.1
-OBSWSPLIT !                                                                 > 0.2
+OBSWSPLIT !                                                                 > 0.25
 WAKEWIDTH !                                                                 > LARGEOBS
-BASEYPLUS !                                                                 > 5 
+BASEYPLUS !                                                                 > 5
+MNODEHT !                                                                   > 125
+NNODEHT !                                                                   > 125 
 END
