@@ -51,7 +51,7 @@ function[x_full,y,T_full,T_center,q_bot_full,q_bot_total,q_top_full,q_top_total,
         C = C+sparse(M*(j-1)+i,M*(j-1)+i+1,k*dy/dx,M*N,M*N);
         C = C+sparse(M*(j-1)+i,M*(j)+i,k*dx/dy,M*N,M*N);
         C = C+sparse(M*(j-1)+i,M*(j-1)+i-1,k*dy/dx,M*N,M*N);
-        b(M*(j-1)+i,1)=0;            
+        d(M*(j-1)+i,1)=0;            
     % left side nodes
         j = 2:(N-1);
         C = C+sparse(M*(j-1)+1,M*(j-1)+1,-(k*dx/dy+k*dy/dx),M*N,M*N);
@@ -92,12 +92,14 @@ function[x_full,y,T_full,T_center,q_bot_full,q_bot_total,q_top_full,q_top_total,
         C = C+sparse(M*(N-1)+i,M*(N-1)+i+1,k*dy/(2*dx),M*N,M*N);
         C = C+sparse(M*(N-1)+i,M*(N-1)+i-1,k*dy/(2*dx),M*N,M*N);
         d(M*(N-1)+i,1) = -(htc_wake*dx*T_inf+q_flux*dx);  
-      % wake-freestream interface node
-        C(M*(N-1)+M2,M*(N-1)+M2)=-(k*dx/dy+k*dy/dx+htc_avg*dx);
-        C(M*(N-1)+M2,M*(N-2)+M2)=k*dx/dy;
-        C(M*(N-1)+M2,M*(N-1)+M2+1)=k*dy/(2*dx);
-        C(M*(N-1)+M2,M*(N-1)+M2-1)=k*dy/(2*dx);
-        d(M*(N-1)+M2,1)=-(htc_avg*dx*T_inf+q_flux*dx);
+     % wake-freestream interface node (only exists if M2 is interior)
+        if M2 < M
+            C(M*(N-1)+M2,M*(N-1)+M2)=-(k*dx/dy+k*dy/dx+htc_avg*dx);
+            C(M*(N-1)+M2,M*(N-2)+M2)=k*dx/dy;
+            C(M*(N-1)+M2,M*(N-1)+M2+1)=k*dy/(2*dx);
+            C(M*(N-1)+M2,M*(N-1)+M2-1)=k*dy/(2*dx);
+            d(M*(N-1)+M2,1)=-(htc_avg*dx*T_inf+q_flux*dx);
+        end
       % top right corner
         if M2>(M-2)
             C(M*N,M*N)=-(k*dx/(2*dy)+k*dy/(2*dx)+htc_free*dx/2);

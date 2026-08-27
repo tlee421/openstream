@@ -1,0 +1,14 @@
+Parameter,Category,Label,Elasticity,pctRMSE_plus,pctRMSE_minus
+x_in,Input/Experimental,x_in (inlet quality),-3.24863373545594,-13.6453768987973,51.3272978103214
+q_eff,Input/Experimental,q_eff (effective heat flux),-1.49599157917109,-15.774365040832,14.1454665425899
+scale_Wad,Closure Relation,Adiabatic wake width,-1.26643818527007,-13.7169335661475,11.6118301392538
+mdot_f,Input/Experimental,mdot_f (film mass flow proxy),0.876171516092777,7.27722148390404,-10.2462088379515
+phi,Closure Relation,phi (mass division fraction),0.876171516092773,7.27722148390391,-10.2462088379515
+scale_dryW,Closure Relation,Dry wake width,-0.40472136513558,-3.71804185201522,4.37638545069639
+scale_htc_wet,Closure Relation,Free-stream (wet) HTC,0.324919029439765,3.0375704946235,-3.46081009417181
+SWR,Input/Experimental,SWR (shear-to-weight proxy),-0.271119848863502,-2.62702227477617,2.79537470249386
+G,Input/Experimental,G (mass flux),0.185347874138315,1.24315964062161,-2.46379784214468
+tau_w,Input/Experimental,tau_w (wall shear proxy),0.162669384359663,1.53269940017167,-1.72068828702159
+scale_htc_dry,Closure Relation,Wake (dry) HTC,0.160233039618916,1.63384768198209,-1.57081311039623
+Re_v,Input/Experimental,Re_v (vapor Reynolds proxy),0.128467667926719,1.29186566898907,-1.27748768954532
+Re_f,Input/Experimental,Re_f (film Reynolds proxy),-0.104715358935711,-0.998922645595582,1.09538453311864

@@ -346,6 +346,14 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             Ftot  = absfilm.FWALL(zIdx)+absfilm.FVAPOR(zIdx)+absfilm.FBUOY(zIdx)+absfilm.FGRAV(zIdx)+absfilm.FDEP(drop,zIdx);  % [N/m^2]
         end
 
+        function Fff = Fff(absfilm,zIdx)
+            %FTOT Total forces per unit area for falling film situation [N/m^2]
+
+            if nargin < 3, zIdx = (1:absfilm(1).NZ).'; end
+
+            Fff  = absfilm.FWALL(zIdx) - absfilm.FGRAV(zIdx);  % [N/m^2]
+        end
+
         function Ualgebr = UALGEBR(absfilm,zIdx)
             %UALGEBR Film velocity using simple algebraic model [m/s]
             %

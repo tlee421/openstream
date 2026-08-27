@@ -276,6 +276,7 @@ classdef ObstructionSolver < Solvers.AbstractSolver
 
             htc_wake_model = solver.film.HTCWAKE(dry);                     % [W/m^2-K] compute HTC's everywhere using wake model
             htc_wake = htc_wake_model(:, wallIdx+1);                       % [W/m^2-K] only use the wake HTC values 
+            
 
             % 4. Compute ambient air HTC
             htc_amb = 4.53;                                                %[W/m^2-K] htc between outer surface of wall and ambient temp  
@@ -410,9 +411,10 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             % --- INITIAL PLOT SETUP ---
             % -------------------------------------------------------------------------
             % Top Plot Setup
+            cmap = inferno;
             [~, h_pcolor] = contourf(ax_top, z_nodes, x_unique, T_Nth(unique_idx, :), 50, 'LineColor', 'none');
             axis(ax_top, 'xy');
-            colormap(ax_top, 'turbo');
+            colormap(ax_top,cmap);
             set(ax_top, 'CLim', [clim_min, clim_max]);
             cb1 = colorbar(ax_top);
             ylabel(cb1, 'Temperature (C)');
@@ -425,7 +427,7 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             hold(ax_top, 'off');
         
             % Bottom Plot Setup
-            colormap(ax_bot, 'turbo');
+            colormap(ax_bot, cmap);
             cb2 = colorbar(ax_bot);
             ylabel(cb2, 'Temperature (C)');
             xlabel(ax_bot, 'Lateral Position x (cm)');

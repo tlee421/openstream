@@ -1,0 +1,8 @@
+Parameter,Category,Label,Elasticity,dRMSE_plus_degC,dRMSE_minus_degC
+x_in,Input/Experimental,x_in (inlet quality),-3.24863373545594,-0.747506688226211,2.81175805449357
+scale_Wad,Closure Relation,Adiabatic wake width,-1.26643818527007,-0.751426630330276,0.636107068057897
+phi,Closure Relation,\phi (mass division fraction),0.876171516092773,0.398653094836911,-0.561297037973818
+scale_dryW,Closure Relation,Dry wake width,-0.40472136513558,-0.203677858962716,0.23974254569251
+scale_htc_wet,Closure Relation,Free-stream (wet) HTC,0.324919029439765,0.166400992624087,-0.189586459301261
+G,Input/Experimental,G (mass flux),0.185347874138315,0.0681014641654532,-0.134969182537038
+scale_htc_dry,Closure Relation,Wake (dry) HTC,0.160233039618916,0.0895037256121629,-0.0860506319966943
