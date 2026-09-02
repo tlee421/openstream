@@ -121,12 +121,58 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             ment = -absfilm.mix.AFDISTR(0,ment,zIdx);                      % [kg/m^2/s] Entrainment mass flux, in annular flow region only
         end
 
+        function Mexch = MEXCH(absfilm, zIdx)
+            %MEXCH  Net circumferential film-crossflow mass flux per wall [kg/(s*m^2)]
+            %   Mexch(:,n) = net crossflow into wall n from its circumferential
+            %   neighbors: sum over neighbors of (Omega_in - Omega_out).
+        
+            if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
+            nz     = length(zIdx);
+            model  = absfilm.inputSet.model;
+            geom   = absfilm.inputSet.geometry;
+            n_wall = geom.NWALL;
+        
+            Mexch = zeros(nz, n_wall);
+        
+            exch_table = geom.FILMEXCHANGES();   % table: wallIdx | perimeter | partners
+            thick = abs(absfilm.THICK(zIdx));    % [m], nz x n_wall
+        
+            switch model.FILMCROSSFLOW
+                case InputEnums.FILMCROSSFLOW.NONE
+                % Suppress film crossflow; Mexch stays all zeros
+
+                case InputEnums.FILMCROSSFLOW.FTPOTENTIAL
+                    C = 10;   % [kg/(s*m^2)] rate coefficient
+        
+                    for wallIdx = 1:n_wall
+                        partners = exch_table.partners{wallIdx};
+                        if isstring(partners) || ischar(partners)
+                            continue   % NWALL == 1: "none", no exchange possible
+                        end
+        
+                        thick_wall = thick(:, wallIdx);
+                        netFlow = zeros(nz,1);
+        
+                        for p = partners
+                            dthick = thick_wall - thick(:,p);          % wall - partner
+                            out_of_wall = max( C*dthick, 0);            % wall -> p
+                            into_wall   = max(-C*dthick, 0);            % p -> wall
+                            netFlow = netFlow + into_wall - out_of_wall;
+                        end
+        
+                         % Convert to areal flux using wall n's perimeter
+                        Pn = exch_table.perimeter(wallIdx);
+                        Mexch(:, wallIdx) = netFlow ./ Pn;
+                    end
+            end
+        end
+
         function Mtot = MTOT(absfilm,drop,zIdx)
             %MTOT Total film mass transfer [kg/m^2/s]
 
             if nargin < 3, zIdx = (1:absfilm(1).NZ).'; end
 
-            Mtot  = absfilm.MEVAP(zIdx,:)+absfilm.MENT(zIdx)+drop.MDEP(zIdx);
+            Mtot  = absfilm.MEVAP(zIdx,:)+absfilm.MENT(zIdx)+drop.MDEP(zIdx)+absfilm.MEXCH(zIdx);
         end
 
         function Cw = CW(absfilm,zIdx)

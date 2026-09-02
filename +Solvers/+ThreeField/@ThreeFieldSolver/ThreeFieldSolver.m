@@ -541,6 +541,7 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                     plotter.plotz(drp.MDEP(opts.zIdx)    ,'Deposition' ,'DisplayName','Drop deposition' ,'XData',zaf,'subset',zafIdx);
                     plotter.plotz(flm.MENT(opts.zIdx)    ,'Entrainment','DisplayName','Film entrainment','XData',zaf,'subset',zafIdx);
                     plotter.plotz(flm.MEVAP(opts.zIdx)   ,'Evaporation','DisplayName','Film evaporation','XData',zaf,'subset',zafIdx);
+                    plotter.plotz(flm.MEXCH(opts.zIdx)  ,'Crossflow'  ,'DisplayName','Film crossflow'  ,'XData',zaf,'subset',zafIdx);
                     plotter.plotz(flm.MTOT(drp,opts.zIdx),      'Total');
                     plotter.legend('show', 'Location', 'best');
                     plotter.xlim([min(z) max(z)]);

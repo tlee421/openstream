@@ -133,7 +133,36 @@ classdef Geometry < Inputs.Input
 
             R = obj.PERIM./sum(obj.PERIM);
         end
+        
+        function n_exch = NEXCHANGE(obj)
+            %Computes the number of inter wall film mass exchanges
+            if obj.NWALL < 2
+                n_exch = 0;
+            elseif obj.NWALL == 2
+                n_exch = 2;
+            else 
+                n_exch = 2*(obj.NWALL);
+            end
+        end
 
+       function exch_table = FILMEXCHANGES(obj)
+            n_wall = obj.NWALL;
+            exch_array = struct('wallIdx', {}, 'perimeter', {}, 'partners', {});
+            for wallIdx = 1:n_wall
+                perimeter = obj.PERIM(wallIdx);
+                if n_wall == 1
+                    partners = "none";
+                else
+                    prevWall = mod(wallIdx - 2, n_wall) + 1;
+                    nextWall = mod(wallIdx, n_wall) + 1;
+                    partners = unique([prevWall, nextWall], 'stable');
+                end
+                exch_array(wallIdx).wallIdx = wallIdx;
+                exch_array(wallIdx).perimeter = perimeter;
+                exch_array(wallIdx).partners = {partners};   % always a cell, regardless of size
+            end
+            exch_table = struct2table(exch_array, "AsArray",true);
+        end 
     end
 
     methods (Static)

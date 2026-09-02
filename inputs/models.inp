@@ -8,6 +8,7 @@ MOMENTLIQUID  ! Liquid momentum conservation model                         > FUL
 MOMENTGAS     ! Gas momentum conservation model                            > FULL
 MOMENTFILM    ! Film momentum conservation model                           > FULL
 MOMENTDROP    ! Drop momentum conservation model                           > FULL
+FILMCROSSFLOW ! Film cros flow model                                       >FTPOTENTIAL
 END
 
 ID            ! Model ID                                                   > TUTORIAL2A
