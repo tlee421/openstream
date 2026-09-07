@@ -123,8 +123,40 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
 
         function Mexch = MEXCH(absfilm, zIdx)
             %MEXCH  Net circumferential film-crossflow mass flux per wall [kg/(s*m^2)]
-            %   Mexch(:,n) = net crossflow into wall n from its circumferential
-            %   neighbors: sum over neighbors of (Omega_in - Omega_out).
+            %   Nets the raw per-partner rates from CROSSFLOWW (in minus out) and
+            %   divides by wall n's own perimeter
+        
+            if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
+            geom       = absfilm.inputSet.geometry;
+            n_wall     = geom.NWALL;
+            nz         = length(zIdx);
+            exch_table = geom.FILMEXCHANGES();
+            crosFlowData  = absfilm.CROSSFLOWW(zIdx);
+        
+            Mexch = zeros(nz, n_wall);
+        
+            for wallIdx = 1:n_wall
+                partners = crosFlowData(wallIdx).partners;
+                netFlow  = sum(crosFlowData(wallIdx).crossFlows_in, 2);   % total in, per-length
+        
+                for k = 1:numel(partners)
+                    p = partners(k);
+                    % this wall's outflow to p = the rate FROM this wall INTO p,
+                    % which lives in partner p's own crossflows_in column for "wallIdx"
+                    selfIdxInPartner = find(crosFlowData(p).partners == wallIdx, 1);
+                    netFlow = netFlow - crosFlowData(p).crossFlows_in(:, selfIdxInPartner);
+                end
+        
+                Mexch(:, wallIdx) = netFlow ./ exch_table.perimeter(wallIdx);
+            end
+        end
+
+        function crossflowWs = CROSSFLOWW(absfilm, zIdx)
+            %CROSSFLOWW  Pairwise film-crossflow rates, per-partner and un-netted.
+            %   Returns a struct array indexed by wall, each with:
+            %     .wallIdx   - this wall's index
+            %     .partners  - neighbor wall indices (matches exch_table)
+            %     .crossFlows_in  - [nz x numPartners], rate FROM each partner INTO this wall [kg/(s*m)]
         
             if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
             nz     = length(zIdx);
@@ -132,37 +164,43 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             geom   = absfilm.inputSet.geometry;
             n_wall = geom.NWALL;
         
-            Mexch = zeros(nz, n_wall);
-        
-            exch_table = geom.FILMEXCHANGES();   % table: wallIdx | perimeter | partners
-            thick = abs(absfilm.THICK(zIdx));    % [m], nz x n_wall
+            exch_table = geom.FILMEXCHANGES();
+            crossflowWs = struct('wallIdx', {}, 'partners', {}, 'crossFlows_in', {});
         
             switch model.FILMCROSSFLOW
                 case InputEnums.FILMCROSSFLOW.NONE
-                % Suppress film crossflow; Mexch stays all zeros
-
+                    for wallIdx = 1:n_wall
+                        partners = exch_table.partners{wallIdx};
+                        if isstring(partners) || ischar(partners)
+                            partners = [];
+                        end
+                        crossflowWs(wallIdx).wallIdx  = wallIdx;
+                        crossflowWs(wallIdx).partners = partners;
+                        crossflowWs(wallIdx).crossFlows_in = zeros(nz, numel(partners));
+                    end
+        
                 case InputEnums.FILMCROSSFLOW.FTPOTENTIAL
-                    C = 10;   % [kg/(s*m^2)] rate coefficient
+                    thick = abs(absfilm.THICK(zIdx));   % [m], nz x n_wall
+                    C = 10;                          % [kg/(s*m^2)] rate coefficient
         
                     for wallIdx = 1:n_wall
                         partners = exch_table.partners{wallIdx};
                         if isstring(partners) || ischar(partners)
-                            continue   % NWALL == 1: "none", no exchange possible
+                            partners = [];
                         end
         
                         thick_wall = thick(:, wallIdx);
-                        netFlow = zeros(nz,1);
+                        crossflow_in = zeros(nz, numel(partners));
         
-                        for p = partners
-                            dthick = thick_wall - thick(:,p);          % wall - partner
-                            out_of_wall = max( C*dthick, 0);            % wall -> p
-                            into_wall   = max(-C*dthick, 0);            % p -> wall
-                            netFlow = netFlow + into_wall - out_of_wall;
+                        for k = 1:numel(partners)
+                            p = partners(k);
+                            dthick = thick(:,p) - thick_wall;     % partner - wall
+                            crossflow_in(:,k) = max(C*dthick, 0);     % rate FROM p INTO wall
                         end
         
-                         % Convert to areal flux using wall n's perimeter
-                        Pn = exch_table.perimeter(wallIdx);
-                        Mexch(:, wallIdx) = netFlow ./ Pn;
+                        crossflowWs(wallIdx).wallIdx  = wallIdx;
+                        crossflowWs(wallIdx).partners = partners;
+                        crossflowWs(wallIdx).crossFlows_in = crossflow_in;
                     end
             end
         end
@@ -308,12 +346,45 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             Fdep = absfilm.mix.AFDISTR(0,Fdep,zIdx);
         end
 
+        function Fexch = FEXCH(absfilm, zIdx)
+            %FEXCH  Net film crossflow momentum force per unit wall area [N/m^2]
+            %   Implements the crossflow "thrust" terms: mass exchanged
+            %   with a neighbor carries that neighbor's velocity, so the force on
+            %   wall n's film scales with the relative velocity difference.
+        
+            if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
+            geom       = absfilm.inputSet.geometry;
+            n_wall     = geom.NWALL;
+            nz         = length(zIdx);
+            exch_table = geom.FILMEXCHANGES();
+            crossFlowData  = absfilm.CROSSFLOWW(zIdx);
+            uf         = absfilm.U(zIdx,:);   % [m/s], nz x n_wall, film velocity per wall
+            
+        
+            Fexch = zeros(nz, n_wall);
+        
+            for wallIdx = 1:n_wall
+                partners = crossFlowData(wallIdx).partners;
+                crossFlows_in = crossFlowData(wallIdx).crossFlows_in;   % rate FROM each partner INTO this wall
+                Pn = exch_table.perimeter(wallIdx);
+        
+                thrust = zeros(nz,1);
+                for k = 1:numel(partners)
+                    p = partners(k);
+                    dU = uf(:,p) - uf(:,wallIdx);          % relative velocity: neighbor minus self
+                    thrust = thrust + (crossFlows_in(:,k) ./ Pn) .* dU;
+                end
+        
+                Fexch(:, wallIdx) = thrust;
+            end
+        end
+
         function Ftot = FTOT(absfilm,drop,zIdx)
             %FTOT Total film forces per unit wall area [N/m^2]
 
             if nargin < 3, zIdx = (1:absfilm(1).NZ).'; end
 
-            Ftot  = absfilm.FWALL(zIdx)+absfilm.FVAPOR(zIdx)+absfilm.FBUOY(zIdx)+absfilm.FGRAV(zIdx)+absfilm.FDEP(drop,zIdx);  % [N/m^2]
+            Ftot  = absfilm.FWALL(zIdx)+absfilm.FVAPOR(zIdx)+absfilm.FBUOY(zIdx)+absfilm.FGRAV(zIdx)+absfilm.FDEP(drop,zIdx) + absfilm.FEXCH(zIdx);  % [N/m^2]
         end
 
         function Ualgebr = UALGEBR(absfilm,zIdx)

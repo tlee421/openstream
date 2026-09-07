@@ -33,4 +33,4 @@ tfSolver = ThreeFieldSolver(inputSet, mixSolver);
 tfSolver.solve();
 %%
 % Plot field mass flow rates and velocities.
-tfSolver.plotz('display', "FWE");
+tfSolver.plotz('display', "U");

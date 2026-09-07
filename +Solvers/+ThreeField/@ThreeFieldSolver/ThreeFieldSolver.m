@@ -562,6 +562,7 @@ classdef ThreeFieldSolver < Solvers.AbstractSolver
                     plotter.plotz(flm.FVAPOR(opts.zIdx)  ,'Vapor'                                     ,'XData',zaf,'subset',zafIdx);
                     plotter.plotz(flm.FBUOY(opts.zIdx)   ,'Buoyancy'                                  ,'XData',zaf,'subset',zafIdx);
                     plotter.plotz(flm.FGRAV(opts.zIdx)   ,'Gravity'                                   ,'XData',zaf,'subset',zafIdx);
+                    plotter.plotz(flm.FEXCH(opts.zIdx)   ,'Crossflow'                                   ,'XData',zaf,'subset',zafIdx);
                     plotter.plotz(flm.FTOT(drp,opts.zIdx),'Total'                                     ,'XData',zaf,'subset',zafIdx);
                     plotter.legend('show', 'Location', 'best');
                     plotter.xlim([min(z) max(z)]);
