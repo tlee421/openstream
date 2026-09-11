@@ -384,7 +384,8 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
 
             if nargin < 3, zIdx = (1:absfilm(1).NZ).'; end
 
-            Ftot  = absfilm.FWALL(zIdx)+absfilm.FVAPOR(zIdx)+absfilm.FBUOY(zIdx)+absfilm.FGRAV(zIdx)+absfilm.FDEP(drop,zIdx) + absfilm.FEXCH(zIdx);  % [N/m^2]
+            Ftot  = absfilm.FWALL(zIdx)+absfilm.FVAPOR(zIdx)+absfilm.FBUOY(zIdx)+...
+            absfilm.FGRAV(zIdx)+absfilm.FDEP(drop,zIdx) + absfilm.FEXCH(zIdx);  % [N/m^2]
         end
 
         function Ualgebr = UALGEBR(absfilm,zIdx)
