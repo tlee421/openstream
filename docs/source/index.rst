@@ -10,6 +10,7 @@
 
    /Usage/gettingStarted
    /Usage/runSampleScript
+   /Usage/versioning
 
 .. toctree::
    :maxdepth: 3
@@ -19,6 +20,9 @@
 
    /Guides/theory/index
    /Guides/tutorials
+   /Guides/testing
+   /Guides/glossary
+   /Guides/notation
    /Guides/references
 
 .. toctree::
@@ -28,6 +32,7 @@
    :caption: Applications
 
    /Applications/database
+   /Applications/contributing
    /Applications/projects
    /Applications/publications
 

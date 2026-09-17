@@ -111,6 +111,12 @@ classdef InputSet
                 obj.session.log.diaryOn();
                 rethrow(ME)
             end
+            diaryCleanup = onCleanup(@() obj.session.log.diaryOff());
+
+            obj.model = Model(opts.modelFilePath,opts.modelID);
+            obj.options = Options(opts.optionsFilePath,opts.optionsID);
+            obj.geometry = Geometry(opts.geometryFilePath, opts.geometryID);
+            obj.bc = BoundaryConditions(opts.bcFilePath, obj.geometry);
 
             % process warnings
             inputsWithWarnings = {obj.model, obj.options, obj.geometry, obj.bc, obj.obs};

@@ -154,12 +154,96 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             ment = -absfilm.mix.AFDISTR(0,ment,zIdx);                      % [kg/m^2/s] Entrainment mass flux, in annular flow region only
         end
 
+        function Mexch = MEXCH(absfilm, zIdx)
+            %MEXCH  Net circumferential film-crossflow mass flux per wall [kg/(s*m^2)]
+            %   Nets the raw per-partner rates from CROSSFLOWW (in minus out) and
+            %   divides by wall n's own perimeter
+        
+            if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
+            geom       = absfilm.inputSet.geometry;
+            n_wall     = geom.NWALL;
+            nz         = length(zIdx);
+            exch_table = geom.FILMEXCHANGES();
+            crosFlowData  = absfilm.CROSSFLOWW(zIdx);
+        
+            Mexch = zeros(nz, n_wall);
+        
+            for wallIdx = 1:n_wall
+                partners = crosFlowData(wallIdx).partners;
+                netFlow  = sum(crosFlowData(wallIdx).crossFlows_in, 2);   % total in, per-length
+        
+                for k = 1:numel(partners)
+                    p = partners(k);
+                    % this wall's outflow to p = the rate FROM this wall INTO p,
+                    % which lives in partner p's own crossflows_in column for "wallIdx"
+                    selfIdxInPartner = find(crosFlowData(p).partners == wallIdx, 1);
+                    netFlow = netFlow - crosFlowData(p).crossFlows_in(:, selfIdxInPartner);
+                end
+        
+                Mexch(:, wallIdx) = netFlow ./ exch_table.perimeter(wallIdx);
+            end
+        end
+
+        function crossflowWs = CROSSFLOWW(absfilm, zIdx)
+            %CROSSFLOWW  Pairwise film-crossflow rates, per-partner and un-netted.
+            %   Returns a struct array indexed by wall, each with:
+            %     .wallIdx   - this wall's index
+            %     .partners  - neighbor wall indices (matches exch_table)
+            %     .crossFlows_in  - [nz x numPartners], rate FROM each partner INTO this wall [kg/(s*m)]
+        
+            if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
+            nz     = length(zIdx);
+            model  = absfilm.inputSet.model;
+            geom   = absfilm.inputSet.geometry;
+            n_wall = geom.NWALL;
+        
+            exch_table = geom.FILMEXCHANGES();
+            crossflowWs = struct('wallIdx', {}, 'partners', {}, 'crossFlows_in', {});
+        
+            switch model.FILMCROSSFLOW
+                case InputEnums.FILMCROSSFLOW.NONE
+                    for wallIdx = 1:n_wall
+                        partners = exch_table.partners{wallIdx};
+                        if isstring(partners) || ischar(partners)
+                            partners = [];
+                        end
+                        crossflowWs(wallIdx).wallIdx  = wallIdx;
+                        crossflowWs(wallIdx).partners = partners;
+                        crossflowWs(wallIdx).crossFlows_in = zeros(nz, numel(partners));
+                    end
+        
+                case InputEnums.FILMCROSSFLOW.FTPOTENTIAL
+                    thick = abs(absfilm.THICK(zIdx));   % [m], nz x n_wall
+                    C = 10;                          % [kg/(s*m^2)] rate coefficient
+        
+                    for wallIdx = 1:n_wall
+                        partners = exch_table.partners{wallIdx};
+                        if isstring(partners) || ischar(partners)
+                            partners = [];
+                        end
+        
+                        thick_wall = thick(:, wallIdx);
+                        crossflow_in = zeros(nz, numel(partners));
+        
+                        for k = 1:numel(partners)
+                            p = partners(k);
+                            dthick = thick(:,p) - thick_wall;     % partner - wall
+                            crossflow_in(:,k) = max(C*dthick, 0);     % rate FROM p INTO wall
+                        end
+        
+                        crossflowWs(wallIdx).wallIdx  = wallIdx;
+                        crossflowWs(wallIdx).partners = partners;
+                        crossflowWs(wallIdx).crossFlows_in = crossflow_in;
+                    end
+            end
+        end
+
         function Mtot = MTOT(absfilm,drop,zIdx)
             %MTOT Total film mass transfer [kg/m^2/s]
 
             if nargin < 3, zIdx = (1:absfilm(1).NZ).'; end
 
-            Mtot  = absfilm.MEVAP(zIdx,:)+absfilm.MENT(zIdx)+drop.MDEP(zIdx);
+            Mtot  = absfilm.MEVAP(zIdx,:)+absfilm.MENT(zIdx)+drop.MDEP(zIdx)+absfilm.MEXCH(zIdx);
         end
 
         function Cw = CW(absfilm,zIdx)
@@ -318,10 +402,11 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
 
             if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
 
+            geom = absfilm.inputSet.geometry;
             model = absfilm.inputSet.model;
             thick = abs(absfilm.THICK(zIdx));                              % [m] Film thickness
 
-            Fgrav = -thick.*(model.G*cos(model.ANGLE*pi/180)*absfilm.fluid.RHOF); % [N/m^2]
+            Fgrav = -thick.*(model.G*cos(geom.ANGLE*pi/180)*absfilm.fluid.RHOF); % [N/m^2]
 
             Fgrav = absfilm.mix.AFDISTR(0,Fgrav,zIdx);
         end
@@ -338,12 +423,46 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             Fdep = absfilm.mix.AFDISTR(0,Fdep,zIdx);
         end
 
+        function Fexch = FEXCH(absfilm, zIdx)
+            %FEXCH  Net film crossflow momentum force per unit wall area [N/m^2]
+            %   Implements the crossflow "thrust" terms: mass exchanged
+            %   with a neighbor carries that neighbor's velocity, so the force on
+            %   wall n's film scales with the relative velocity difference.
+        
+            if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
+            geom       = absfilm.inputSet.geometry;
+            n_wall     = geom.NWALL;
+            nz         = length(zIdx);
+            exch_table = geom.FILMEXCHANGES();
+            crossFlowData  = absfilm.CROSSFLOWW(zIdx);
+            uf         = absfilm.U(zIdx,:);   % [m/s], nz x n_wall, film velocity per wall
+            
+        
+            Fexch = zeros(nz, n_wall);
+        
+            for wallIdx = 1:n_wall
+                partners = crossFlowData(wallIdx).partners;
+                crossFlows_in = crossFlowData(wallIdx).crossFlows_in;   % rate FROM each partner INTO this wall
+                Pn = exch_table.perimeter(wallIdx);
+        
+                thrust = zeros(nz,1);
+                for k = 1:numel(partners)
+                    p = partners(k);
+                    dU = uf(:,p) - uf(:,wallIdx);          % relative velocity: neighbor minus self
+                    thrust = thrust + (crossFlows_in(:,k) ./ Pn) .* dU;
+                end
+        
+                Fexch(:, wallIdx) = thrust;
+            end
+        end
+
         function Ftot = FTOT(absfilm,drop,zIdx)
             %FTOT Total film forces per unit wall area [N/m^2]
 
             if nargin < 3, zIdx = (1:absfilm(1).NZ).'; end
 
-            Ftot  = absfilm.FWALL(zIdx)+absfilm.FVAPOR(zIdx)+absfilm.FBUOY(zIdx)+absfilm.FGRAV(zIdx)+absfilm.FDEP(drop,zIdx);  % [N/m^2]
+            Ftot  = absfilm.FWALL(zIdx)+absfilm.FVAPOR(zIdx)+absfilm.FBUOY(zIdx)+...
+            absfilm.FGRAV(zIdx)+absfilm.FDEP(drop,zIdx) + absfilm.FEXCH(zIdx);  % [N/m^2]
         end
 
         function Fff = Fff(absfilm,zIdx)
@@ -375,6 +494,8 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
 
             if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
 
+            options = absfilm.inputSet.options;
+
             iter(1).U = absfilm.U(zIdx,:);
             iter(1).Ftot = absfilm.FVAPOR(zIdx)+absfilm.FWALL(zIdx);
 
@@ -383,15 +504,15 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             iter(2).Ftot = absfilm.FVAPOR(zIdx)+absfilm.FWALL(zIdx);
 
             eps = 1.0;
-            for k = 3:100
+            for k = 3:options.UFEQUILMAXITER
                 Uiter = iter(k-2).U-iter(k-2).Ftot.*(iter(k-1).U-iter(k-2).U)./(iter(k-1).Ftot-iter(k-2).Ftot);
                 iter(k).U = (1-eps).*iter(k-1).U+eps.*Uiter;
                 absfilm.U(zIdx,:)=iter(k).U;
                 iter(k).Ftot = absfilm.FVAPOR(zIdx)+absfilm.FWALL(zIdx);
                 err = max(abs(iter(k).Ftot),[],'all');
-                if err<1E-3, break; end
+                if err < options.UFEQUILTOL, break; end
             end
-            if err > 1E-3
+            if err > options.UFEQUILTOL
                 fprintf('%s UEQUILS model : not converged -> err=%0.4f\n',class(absfilm), err);
             end
 
@@ -403,6 +524,8 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
 
             if nargin < 3, zIdx = (1:absfilm(1).NZ).'; end
 
+            options = absfilm.inputSet.options;
+
             iter(1).U = absfilm.U(zIdx,:);
             iter(1).Ftot = absfilm.FTOT(drop,zIdx);
 
@@ -411,15 +534,15 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             iter(2).Ftot = absfilm.FTOT(drop,zIdx);
 
             eps = 1.0;
-            for k = 3:100
+            for k = 3:options.UFEQUILMAXITER
                 Uiter = iter(k-2).U-iter(k-2).Ftot.*(iter(k-1).U-iter(k-2).U)./(iter(k-1).Ftot-iter(k-2).Ftot);
                 iter(k).U = (1-eps).*iter(k-1).U+eps.*Uiter;
                 absfilm.U(zIdx,:)=iter(k).U;
                 iter(k).Ftot = absfilm.FTOT(drop,zIdx);
                 err = max(abs(iter(k).Ftot),[],'all');
-                if err<1E-3, break; end
+                if err < options.UFEQUILTOL, break; end
             end
-            if err > 1E-3
+            if err > options.UFEQUILTOL
                 fprintf('%s UEQUIL model : not converged -> err=%0.4f\n',class(absfilm), err);
             end
 
@@ -435,8 +558,8 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             %
             % Inputs:
             %
-            % - drop  — :class:`Solvers.ThreeField.Drop` object
-            % - zIdx  — Axial indices to evaluate (optional)
+            % - absfilm  — :class:`Solvers.AbstractFilm` object
+            % - zIdx    — Axial indices to evaluate (optional)
 
             if nargin < 2, zIdx = (1:absfilm(1).NZ).'; end
 
@@ -576,7 +699,7 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             %CV_WALLISTHICK_CALC Private method to calculate the interfacial
             % shear factor [-]
             % 
-            % Based on the :attr:`InputEnums.VAPORFRIC` = `WALLISTHICK` model.
+            % Based on the :attr:`Inputs.Model.VAPORFRIC` = `WALLISTHICK` model.
 
             area = absfilm.inputSet.geometry.AREA;                         % [m^2] Cross-section area
             perim = absfilm.inputSet.geometry.PERIM;                       % [m]   Perimeter(s)
@@ -587,6 +710,8 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             %ENTNUM Private method to calculate the entrainment number [-]
             %
             % Based on Okawa model assumptions.
+
+            options = absfilm.inputSet.options;
 
             vapor = absfilm.mix.vapor;
             rhof  = absfilm.fluid.RHOF;                                    % [kg/m^3] Saturated liquid density
@@ -603,17 +728,18 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             % Film thickness (model consistent with entrainment correlation derivation)
             %delta0 = Wf./film.UEQUILS(mix,zIdx)./perim./rhof;              % Could use this simpler option instead if VAPORFRIC=WALLISTHICK could be selected specifically for this calculation
             slip = ones(size(Wf)); err=1;                                  % [-, -] Set initial guess and error for delta search
-            for it = 1:100
+            for it = 1:options.ENTNUMMAXITER
                 delta = (rhog/rhof).*slip.*Wf./max(1e-10,vapor.W(zIdx)).*area./perim; % [m] Film thickness(es)
                 Cv = absfilm.CV_WALLISTHICK_CALC(delta, 0.005);            % [-] Interfacial friction factor, thick=delta, C=0.005
                 newslip = sqrt(Cw./Cv.*(rhof/rhog));                       % [-] Slip formulation
                 err = max(abs((newslip)./(slip)-1));                       % [-] Error
                 slip = newslip;                                            % [-] Update slip
-                if err < 0.01; break
+                if err < options.ENTNUMTOL; break
                 end
             end
-            if err > 0.01
+            if err > options.ENTNUMTOL
                 disp('Okawa correlation : not converged')
+                absfilm.log('\nEntrainment number not converged at node %d after %d iterations. \nSlip residual = %g.\n',zIdx,it,err);
             end
 
             entnum = Cv.*rhog.*absfilm.mix.JG(zIdx).^2.*delta./sig;        % [-] Entrainment number
@@ -641,7 +767,7 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
 
         function [ke, n2] = OKAWACOEFS(absfilm, entnum, coefs)
             %OKAWACOEFS Private method to determine the coefficients used in
-            % :attr:`InputEnums.ENTRAINMENT` = `OKAWA` entrainment models
+            % :attr:`Inputs.Model.ENTRAINMENT` = `OKAWA` entrainment models
             % 
             % Based on the calculated entrainment number
 

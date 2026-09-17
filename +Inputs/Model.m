@@ -13,7 +13,6 @@ classdef Model < Inputs.Input
                                                                            = 100                             % Number of axial nodes used in the simulation
         FLUID            (1,1) string  {mustBeTextScalar}                  = 'WATER'                         % CoolProp fluid identifier
         PROPERTIES       (1,1) InputEnums.FLUIDPROPERTIES                  = 'SATURATED'                     % Assumption model for fluid properties selected from :class:`InputEnums.FLUIDPROPERTIES`
-        ANGLE            (1,1) double  {mustBeNumeric}                     = 0                               % Flow axis angle from vertical [deg]
         KLOC             (1,:) double  {mustBeNumeric,mustBeNonempty}      = [0 0]                           % Elevation of local perturbations [m]
 
         % Two-phase flow regime and wall heat transfer transitions
@@ -57,13 +56,14 @@ classdef Model < Inputs.Input
 
         THERMALRELAX     (1,1) InputEnums.THERMALRELAX                     = 'TIMEX'                         % Thermal non-equilibrium time relaxation model selected from :class:`InputEnums.THERMALRELAX`
         RELAXX           (1,:) double                                      = [-0.5 -0.25 -0.1 0.0 1.0]       % Interfacial phase change relaxation time thermodynamic quality [-]
-        RELAXCONDFO      (1,:) double                                      = [ 1.0  1.0   1.0 1.0 1.0].*1E-4 % Interfacial condensation Fourier number array [s]
-        RELAXEVAPFO      (1,:) double                                      = [ 1.0  1.0   1.0 1.0 1.0].*5E-5 % Interfacial evaporation  Fourier number array [s]
-        RELAXCONDT       (1,:) double                                      = [ 1.0  0.5   0.3 0.1 0.1]       % Interfacial condensation relaxation time array [s]
-        RELAXEVAPT       (1,:) double                                      = [ 0.3  0.3   0.3 0.3 0.3]       % Interfacial evaporation  relaxation time array [s]
-        RELAXCONDCOEF    (1,4) double  {mustBeNumeric}                     = [0.1E-3 1/3 0.05 0.0]           % Interfacial condensation time relaxation coefficients for homogeneous/non-homogeneous models
-        RELAXEVAPCOEF    (1,4) double  {mustBeNumeric}                     = [0.1E-3 1/3 1E-5 0.0]           % Interfacial evaporation  time relaxation coefficients for homogeneous/non-homogeneous models
-        RELAXEVAPFOCOEF  (1,3) double  {mustBeNumeric}                     = [5.75E5 3 0.8]                  % Interfacial evaporation  time relaxation coefficients for empirical Fourier number model
+        RELAXCONDFO      (1,:) double                                      = [ 1.0  1.0   1.0 1.0 1.0].*1E-4 % Interfacial condensation Fourier number array  for THERMALRELAX FOURIERX model [-]
+        RELAXEVAPFO      (1,:) double                                      = [ 1.0  1.0   1.0 1.0 1.0].*5E-5 % Interfacial evaporation  Fourier number array  for THERMALRELAX FOURIERX model [-]
+        RELAXCONDT       (1,:) double                                      = [ 1.0  0.5   0.3 0.1 0.1]       % Interfacial condensation relaxation time array  for THERMALRELAX TIMEX model [s]
+        RELAXEVAPT       (1,:) double                                      = [ 0.3  0.3   0.3 0.3 0.3]       % Interfacial evaporation  relaxation time array  for THERMALRELAX TIMEX model [s]
+        RELAXCONDCOEF    (1,4) double  {mustBeNumeric}                     = [0.1E-3 1/3 0.05 0.0]           % Interfacial condensation time relaxation coefficients for THERMALRELAX HOMOGENEOUS model
+        RELAXEVAPCOEF    (1,4) double  {mustBeNumeric}                     = [0.1E-3 1/3 1E-5 0.0]           % Interfacial evaporation  time relaxation coefficients for THERMALRELAX HOMOGENEOUS model
+        RELAXCONDFOCOEF  (1,4) double  {mustBeNumeric}                     = [5E-5 5E5 0 0]                  % Interfacial condensation time relaxation coefficients for THERMALRELAX FOURIER model
+        RELAXEVAPFOCOEF  (1,6) double  {mustBeNumeric}                     = [1E-4 5E5 2 2 10E-3 1]          % Interfacial evaporation  time relaxation coefficients for THERMALRELAX FOURIER model
         KTRELAX          (1,:) double  {mustBeNumeric,mustBeNonempty}      = NaN                             % Thermal relaxation time at local perturbations [s]
 
         % Mixture near-wall models
@@ -79,7 +79,7 @@ classdef Model < Inputs.Input
 
         % Two-fluid solver models
 
-        INTLENGTH        (1,1) InputEnums.INTLENGTH                        = 'CONSTANT'                      % Interfacial length scale model model selected from :class:`InputEnums.INTLENGTH`
+        INTLENGTH        (1,1) InputEnums.INTLENGTH                        = 'CONSTANT'                      % Interfacial length scale model selected from :class:`InputEnums.INTLENGTH`
         INTAREA          (1,1) InputEnums.INTAREA                          = 'DISPGAS2DISPLIQ'               % Interfacial area model selected from :class:`InputEnums.INTAREA`
         INTLENGTHVCST    (1,1) double                                      = 2E-3                            % Dispersed gas    constant interfacial length scale [m]
         INTLENGTHLCST    (1,1) double                                      = 2E-3                            % Dispersed liquid constant interfacial length scale [m]
@@ -123,10 +123,11 @@ classdef Model < Inputs.Input
         FWLAM            (1,1) double  {mustBePositive}                    = 16                              % Numerator in laminar wall friction equation [m]
 
         MINSTABLETHICK   (1,1) InputEnums.MINSTABLETHICK                   = 'CHUN'                          % Minimum stable film thickness before ruprture [m]
+        FILMCROSSFLOW    (1,1) InputEnums.FILMCROSSFLOW                    = 'NONE'                          % Film exchange between walls model selected from :class: 'InputEnums.FILMCROSSFLOW
 
         MOMENTDROP       (1,1) InputEnums.MOMENTDROP                       = 'SLIP'                          % Drop momentum conservation model selected from :class:`InputEnums.MOMENTDROP`
         DROPSLIP         (1,1) double  {mustBePositive}                    = 1.0                             % Drop/vapor velocity ratio [-]
-        DROPDIAM         (1,1) double  {mustBePositive}                    = 1E-3                            % Drop diameter [mm]
+        DROPDIAM         (1,1) double  {mustBePositive}                    = 1E-3                            % Drop diameter [m]
 
         % Four-field solver models
 
@@ -263,10 +264,11 @@ classdef Model < Inputs.Input
             if ~isempty(defaultValueFieldNames)
                 defaultValueWarningString = obj.defaultValueUsedReport(defaultValueFieldNames, defaultValues);
                 if nargout == 0
-                    warning('Model:defaultValueUsedWarning', ...
-                        sprintf('%s\n',defaultValueWarningString));
+                    warning('OpenSTREAM:Model:defaultValueUsedWarning', ...
+                        '%s\n', ...
+                        defaultValueWarningString);
                 else
-                    w = struct('warnID', 'Model:defaultValueUsedWarning', ...
+                    w = struct('warnID', 'OpenSTREAM:Model:defaultValueUsedWarning', ...
                         'msg', defaultValueWarningString);
                     if isempty(obj.warnings)
                         obj.warnings = w;

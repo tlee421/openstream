@@ -49,6 +49,12 @@ classdef (Abstract) AbstractSolver < matlab.mixin.Copyable & handle
             solver.inputSet.session.log.log(varargin{:});
         end
 
+        function warning(solver, varargin)
+            %LOG Log warning messages to the session log
+
+            solver.inputSet.session.log.warning(varargin{:});
+        end
+
         function name = solverName(solver)
             %SOLVERNAME Returns the name of the solver
 
@@ -74,7 +80,7 @@ classdef (Abstract) AbstractSolver < matlab.mixin.Copyable & handle
             session = solver.inputSet.session;
 
             if ~isfolder(session.directory)
-                error('Directory %s does not exist. Check Session.log.LOGMODE. Try session.makeSessionDirectory()',session.directory);
+                error('OpenSTREAM:AbstractSolver:DirectoryDoesNotExist','Directory %s does not exist. Check Session.log.LOGMODE. Try session.makeSessionDirectory()',session.directory);
             end
 
             outputFile = fullfile(session.directory, session.name + '_' + solver.solverName() + '.mat');
@@ -93,7 +99,7 @@ classdef (Abstract) AbstractSolver < matlab.mixin.Copyable & handle
     methods (Static)
 
         function ITR = CreateITR(NZ, ITRFields)
-            %CreateITR Create a structure for inner iteration values
+            %CreateITR Create and initialize the inner iteration storage structure
             %
             % Inputs:
             %

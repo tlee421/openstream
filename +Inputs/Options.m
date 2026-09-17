@@ -18,20 +18,21 @@ classdef Options < Inputs.Input
 
         % Mixture solver options
 
+        MRMTIMEINT       (1,1) InputEnums.MRMTIMEINT                       = 'EXPONENTIAL'         % Time integration for vapor mass/energy conservation equations
         ERRORW           (1,1) double  {mustBeNumeric}                     = 1E-3                  % Mass flow rate error target in inner iterations [kg/s]
         ERRORP           (1,1) double  {mustBeNumeric}                     = 1E-1                  % Pressure error target in inner iterations [Pa]
         ERRORH           (1,1) double  {mustBeNumeric}                     = 1E-1                  % Enthalpy error target in inner iterations [J/kg]
         SSCONVW          (1,1) double  {mustBeNumeric}                     = 1E-3                  % Mass flow rate steady-state convergence criterion [kg/s]
         SSCONVP          (1,1) double  {mustBeNumeric}                     = 1E+0                  % Pressure steady-state convergence criterion [Pa]
         SSCONVH          (1,1) double  {mustBeNumeric}                     = 1E+0                  % Enthalpy steady-state convergence criterion [J/kg]
-        RELAXWM          (1,1) double  {mustBeInRange(RELAXWM,0,1)}        = 1                     % Relaxation factor for the mixture mass conservation equation [-]
-        RELAXPM          (1,1) double  {mustBeInRange(RELAXPM,0,1)}        = 1                     % Relaxation factor for the mixture momentum conservation equation [-]
-        RELAXHM          (1,1) double  {mustBeInRange(RELAXHM,0,1)}        = 1                     % Relaxation factor for the mixture energy conservation equation [-]
+        RELAXWM          (1,1) double  {mustBeInRange(RELAXWM,0,1)}        = 1.0                   % Relaxation factor for the mixture mass conservation equation [-]
+        RELAXPM          (1,1) double  {mustBeInRange(RELAXPM,0,1)}        = 1.0                   % Relaxation factor for the mixture momentum conservation equation [-]
+        RELAXHM          (1,1) double  {mustBeInRange(RELAXHM,0,1)}        = 1.0                   % Relaxation factor for the mixture energy conservation equation [-]
 
-        % Mixture (MRM) solver models
+        % Mixture (MRM) solver options
 
-        RELAXWV          (1,1) double  {mustBeInRange(RELAXWV,0,1)}        = 0.8                   % Relaxation factor for the vapor  mass conservation equation [-]
-        RELAXHV          (1,1) double  {mustBeInRange(RELAXHV,0,1)}        = 0.8                   % Relaxation factor for the vapor  energy conservation equation [-]
+        RELAXWV          (1,1) double  {mustBeInRange(RELAXWV,0,1)}        = 0.7                   % Relaxation factor for the vapor  mass conservation equation [-]
+        RELAXHV          (1,1) double  {mustBeInRange(RELAXHV,0,1)}        = 0.7                   % Relaxation factor for the vapor  energy conservation equation [-]
 
         % Two-fluid solver options
 
@@ -44,6 +45,14 @@ classdef Options < Inputs.Input
 
         % Three-field solver options
 
+        OAFEQUILMAXITER  (1,1) uint8   {mustBeInteger,mustBePositive}      = 100                   % Maximum number of iterations to find equilibrium at onset of annular flow
+        OAFEQUILTOL      (1,1) double  {mustBeNumeric}                     = 1E-4                  % Target film mass flow rate tolerance to find equilibrium at onset of annular flow [kg/s/m]
+        UDEQUILMAXITER   (1,1) uint8   {mustBeInteger,mustBePositive}      = 100                   % Maximum number of iterations to find droplet equilibrium velocity
+        UDEQUILTOL       (1,1) double  {mustBeNumeric}                     = 1E-3                  % Target drop force tolerance to find droplet equilibrium velocity [N/m^3]
+        UFEQUILMAXITER   (1,1) uint8   {mustBeInteger,mustBePositive}      = 100                   % Maximum number of iterations to find film equilibrium velocity
+        UFEQUILTOL       (1,1) double  {mustBeNumeric}                     = 1E-3                  % Target film force tolerance to find film equilibrium velocity [N/m^3]
+        ENTNUMMAXITER    (1,1) uint8   {mustBeInteger,mustBePositive}      = 100                   % Maximum number of iterations to find film entrainment number
+        ENTNUMTOL        (1,1) double  {mustBeNumeric}                     = 1E-2                  % Target velocity slip tolerance to find film entrainment number [-]
         ERRORWF          (1,1) double  {mustBeNumeric}                     = 1E-4                  % Film mass flow rate error target in inner iterations [kg/s/m]
         ERRORUF          (1,1) double  {mustBeNumeric}                     = 1E-2                  % Film velocity error target in inner iterations [m/s]
         ERRORUD          (1,1) double  {mustBeNumeric}                     = 1E-2                  % Drop velocity error target in inner iterations [m/s]
@@ -69,7 +78,7 @@ classdef Options < Inputs.Input
     methods
 
         function obj = Options(filePath,optionsID)
-            %MODEL Constructor for Options class
+            %OPTIONS Constructor for Options class
             %
             % Parses options input file and initializes properties.
             % Applies default values and validates entries.

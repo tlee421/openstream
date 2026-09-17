@@ -26,10 +26,12 @@ extensions = [
     'sphinxcontrib.bibtex', 
     'sphinx_new_tab_link',
     'sphinx.ext.autosectionlabel',
-    'sphinx_new_tab_link'
+    'sphinx_design'
 ]
 
-numfig = False
+autosectionlabel_prefix_document = True
+
+numfig = True
 numfig_format = {
     'figure': 'Figure %s',
     'table': 'Table %s',
@@ -65,7 +67,7 @@ toc_object_entries = True
 toc_object_entries_show_parents = 'all'
 
 autodoc_default_flags = ['members']
-autosummary_generate = True
+autosummary_generate = False
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -73,7 +75,11 @@ autosummary_generate = True
 #html_theme = 'alabaster'
 html_theme = "sphinx_rtd_theme"
 html_static_path = ['_static']
+html_css_files = [
+    "custom.css",
+]
 html_logo = '_static/logo-transparent.png'
+latex_logo = '_static/logo-transparent.png'
 html_favicon = '_static/favicon.ico'
 includehidden = True
 html_theme_options = {
@@ -81,8 +87,48 @@ html_theme_options = {
     "includehidden": True,
 }
 
-# -- Options fpr LaTex output ------------------------------------------------
+# -- Options for LaTex output ------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-latex-output
 latex_engine = 'pdflatex'
 #latex_toplevel_sectioning = 'section'
-latex_documents = [('index_latex', f'{project}.tex', f"{project} Manual", author, 'manual')]
+latex_documents = [('index_latex', f'{project}.tex', f"{project} Documentation", author, 'manual')]
+latex_table_style = ['booktabs']
+
+latex_elements = {
+    'printindex': r'\def\twocolumn[#1]{#1}\printindex',
+    'preamble': r'''
+    \usepackage{xcolor}
+    \definecolor{openstreamblue}{RGB}{63,66,161}      % primary  #3F42A1
+    \definecolor{openstreamlight}{RGB}{120,123,200}   % lighter  ~ for subtitles/rules
+    \definecolor{openstreampale}{RGB}{225,226,242}    % pale     ~ for background bands
+    ''',
+    'maketitle': r'''
+    \begin{titlepage}
+    \centering
+    \makeatletter
+    \vspace*{2cm}
+
+    {\color{openstreamblue}\rule{\linewidth}{1.2pt}}\par
+    \vspace{0.6cm}
+    {\Huge\bfseries\color{openstreamblue} \@title \par}
+    \vspace{0.4cm}
+    {\large\itshape\color{openstreamlight} Open Solvers for Two-phase flow Research,\\
+     Engineering Analysis and Modeling\par}
+    \vspace{0.5cm}
+    {\color{openstreamblue}\rule{\linewidth}{1.2pt}}\par
+
+    \vspace{0.8cm}
+    {\large \@date \par}
+
+    \vfill
+
+    \includegraphics[width=0.40\textwidth]{logo-transparent.png}\par
+    \vspace{4cm}
+
+    {\small\color{gray} \textcopyright\ 2024--\the\year\ The OpenSTREAM Team \\ Licensed under the MIT License \\ https://github.com/OpenSTREAM-solvers/openstream \par}
+    \vspace{1cm}
+    \makeatother
+    \end{titlepage}
+    \clearpage
+    ''',
+}

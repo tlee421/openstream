@@ -3,7 +3,7 @@ Three-field model
 
 The three-field simulation framework in **OpenSTREAM** provides a structured representation of annular two-phase flow by solving relevant conservation equations for the liquid film and droplet fields, with the vapor field derived from the mixture solver. This formulation is tailored for saturated flow conditions within a theoretical framework used in other codes, such as in subchannel analysis for Boiling Water Reactor (BWR) fuel simulations (:cite:t:`ADAMSSON20112843`)(:cite:t:`ADAMSSON2014316`).
 
-The three distinct flow fields: vapor, entrained droplets and liquid film, are illustrated in Figure 1.
+The three distinct flow fields: vapor, entrained droplets and liquid film, are illustrated in :numref:`fig-three-field-framework`.
 
 .. _fig-three-field-framework:
 
@@ -12,7 +12,7 @@ The three distinct flow fields: vapor, entrained droplets and liquid film, are i
    :width: 500px
    :align: center
 
-   Figure 1. Field geometrical characteristics in the three-field simulation framework (vapor, drops and film).
+   Field geometrical characteristics in the three-field simulation framework (vapor, drops and film).
 
 The three-field model serves several key roles within OpenSTREAM:
 
@@ -68,10 +68,10 @@ where:
 - :math:`h_{vs}`, :math:`h_{ls}` are the saturated vapor and liquid specific enthalpies
 - :math:`{q^{\prime\prime}}_{w}^n` is the wall heat flux for wall index :math:`n`
 
-Closure relations
------------------
+Closure models
+--------------
 
-To complete the conservation equations, several closure relations are required:
+To complete the conservation equations, several closure models are required:
 
 - Onset of annular two-phase flow
 - Film/drop mass flow rate split at onset of annular two-phase flow
@@ -82,7 +82,7 @@ To complete the conservation equations, several closure relations are required:
 - Wall shear stress on the liquid film: :math:`\tau_{w,f}^n`
 - Drop interfacial area and volume: :math:`A_d`, :math:`V_d`
 
-The selected closure models are defined in the OpenSTREAM model file, chosen from the available options listed in :mod:`InputEnums`. If not explicitly specified by the user, default models are applied as defined in :class:`Inputs.Model`. All closure relations are implemented in :class:`Solvers.ThreeField.Film` and :class:`Solvers.ThreeField.Drop`, which the users can modify to suit specific simulation needs.
+The selected closure models are defined in the OpenSTREAM model file, chosen from the available options listed in :mod:`InputEnums`. If not explicitly specified by the user, default models are applied as defined in :class:`Inputs.Model`. All closure models are implemented in :class:`Solvers.ThreeField.Film` and :class:`Solvers.ThreeField.Drop`, which the users can modify to suit specific simulation needs.
 
 In addition, the thermodynamic properties for each phase are computed using `CoolProp <https://coolprop.org/>`_, an open-source thermophysical property library that provides accurate equations of state and transport properties for a wide range of fluids.
 
