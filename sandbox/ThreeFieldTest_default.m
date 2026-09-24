@@ -33,18 +33,6 @@ mixSolver.initializeSolver();
 % Solve (does not accept any argument)
 mixSolver.solve();
 
-% Axial and temporal plots
-mixSolver.plotz(1);
-mixSolver.plotz(mixSolver.NTIME);
-%mixSolver.plott(mixSolver.NZ,'solveMode','STEADY')
-%mixSolver.plott(mixSolver.NZ)
-%mixSolver.plott([1 floor(mixSolver.NZ./8.*(2:8))])
-
-% Save results
-%mixSolver.saveResults(saveFormat="MAT");
-
-%return
-
 %% Three-field
 
 import Solvers.ThreeField.*

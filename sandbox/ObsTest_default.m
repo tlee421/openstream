@@ -24,7 +24,7 @@ obsSolver.solveWallHT();
 
 %%
 %Plot the three field model results for the three tracks merged together
-obsSolver.plotz('display','WL')
+obsSolver.plotz('display','THICK')
 %%
 %Plot the wall temperature distribution
 obsSolver.plotWallTemperature();

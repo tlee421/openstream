@@ -123,7 +123,8 @@ OBSWSPLIT !                                                                 > 0.
 WAKEWIDTH !                                                                 > LARGEOBS
 BASEYPLUS !                                                                 > 5
 MNODEHT !                                                                   > 125
-NNODEHT !                                                                   > 125 
+NNODEHT !                                                                   > 125
+FILMCROSSFLOW ! Film cros flow model                                        > FTPOTENTIAL
 END
 
 ID            ! Models ID                                                  > TUTORIAL4A
