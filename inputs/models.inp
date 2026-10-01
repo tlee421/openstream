@@ -125,6 +125,7 @@ BASEYPLUS !                                                                 > 5
 MNODEHT !                                                                   > 125
 NNODEHT !                                                                   > 125
 FILMCROSSFLOW ! Film cros flow model                                        > FTPOTENTIAL
+KWALL!                                                                      > 15
 END
 
 ID            ! Models ID                                                  > TUTORIAL4A

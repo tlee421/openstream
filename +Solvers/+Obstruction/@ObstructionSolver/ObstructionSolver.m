@@ -377,7 +377,7 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             % --- Global color limits ---
             clim_min = min(T_full(:));
             clim_max = max(T_full(:));
-        
+            
             % --- Nth node temperature (outer wall surface) ---
             T_Nth = squeeze(T_full(:, end, :));                        % [2M x numZ]
         
