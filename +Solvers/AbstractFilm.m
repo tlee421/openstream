@@ -214,7 +214,7 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
         
                 case InputEnums.FILMCROSSFLOW.FTPOTENTIAL
                     thick = abs(absfilm.THICK(zIdx));   % [m], nz x n_wall
-                    C = 10;                          % [kg/(s*m^2)] rate coefficient
+                    C = 0.5;                             % [kg/(s*m^2)] rate coefficient
         
                     for wallIdx = 1:n_wall
                         partners = exch_table.partners{wallIdx};

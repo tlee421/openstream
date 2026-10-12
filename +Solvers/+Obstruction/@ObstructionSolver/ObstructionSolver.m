@@ -257,7 +257,7 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             numZ = solver.NZ;                                              % Number of axial nodes 
             length = inputSet_wake.geometry.LENGTH;                        % Length of heated section
             W = model.WWALL/2;                                             % [m] half width of wall obs is on
-            perim = obsSolver.originalInputset.geometry.PERIM(wallIdx);     % [m] perimeter of channel
+            perim = obsSolver.originalInputset.geometry.PERIM(wallIdx);    % [m] perimeter of channel
             th = model.WALLTHICK;                                          % [m] thickness of wall 
             k_wall = model.KWALL;                                          % [W/m-k] thermal conductivity of wall
             T_amb = model.TAMB;                                            % [K] ambient temperature
@@ -268,7 +268,7 @@ classdef ObstructionSolver < Solvers.AbstractSolver
 
             % 3. Compute Wake and Free Stream HTC
             w_dryWake = obsSolver.DRYWAKEW;                                % [m] dry wake width
-            dry = w_dryWake ~= 0 ;                                         % create boolean object of whether that node is dry to pass to HTC function
+            dry = w_dryWake ~= 0 ;                                         % create boolean object of whether that node is dry to pass to HTCWAKE function
             dry = repmat(dry,1,nwall);
 
             htc_general_model = solver.film.HTC;                           % [W/m^2-K] compute HTC's everywhere using general model
@@ -285,7 +285,7 @@ classdef ObstructionSolver < Solvers.AbstractSolver
             w_free_array = zeros(numZ,1);                                  %initialize free stream width array
             mask_dry = dry(:,2);                                           % boolean mask if wake is dry
             w_free_array(mask_dry) = -w_dryWake(mask_dry) + 2*W;           % [m] free stream width when the wake is dry
-            w_free_array(~mask_dry) = W - inputSet_wake.geometry.PERIM(wallIdx+1);  % [m] free stream width when the wake is wet
+            w_free_array(~mask_dry) = 2*W - inputSet_wake.geometry.PERIM(wallIdx+1);  % [m] free stream width when the wake is wet
 
 
             % 6. Iterate through axial steps and compute 2D temperature profile
@@ -341,12 +341,23 @@ classdef ObstructionSolver < Solvers.AbstractSolver
                     Bo_obs = hflux .* w_wake .* L_obs/ (m_dot_wake_ini * hfg); % [-] Wake boiling number
 
                     wake_ratio_func = -5 + 0.0058*Bo_obs + (6.3325 * Bo_obs.^1.6617)./(0.1719^1.6617 + Bo_obs.^1.6617); %Empirical curve fit for wake ratio as a function of Bo_obs
-                    wake_ratio = max(0, wake_ratio_func); %limit wake ratio to a minimum value of 0
+                    wake_ratio = max(0, wake_ratio_func);                  %limit wake ratio to a minimum value of 0
 
-                    dryWakeWidth = w_wake * wake_ratio; %[m] dry wake width
+                    dryWakeWidth = w_wake * wake_ratio;                    %[m] dry wake width
 
+                case InputEnums.DRYWAKEWIDTH.TWOTRACK
+                    WL_max = model.WLDRY;                                  % [kg/s-m] Mass flow rate per unit perimieter that dryout is assumed to occur at
+                    wallIdx = obs.WALL;                                    % Index of wall obs is on
+                    WL = solver.film.WL;                                   % [kg/s] Array of mass flow rate per unit perimeter behind obstruction
+                    WL_wake = WL(:,wallIdx+1);                             % [kg/s-m] Array of mass flow rate per unit perimeter within the wake 
+                    w_wake  = inputSet_wake.geometry.PERIM(wallIdx+1);     % [m] Width of the hydrodynamic wake
+
+                    dryMask = WL_wake<WL_max;                              % Boolean mask of whether a node is dry or not
+
+                    dryWakeWidth = w_wake*dryMask;                         % If WL<WDRY then dry wake will be equal to hydrodynamic wake, otherwise it will equal 0 
             end
 
+            
             
         
         end

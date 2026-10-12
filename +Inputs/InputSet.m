@@ -50,7 +50,7 @@ classdef InputSet
                 opts.bcFilePath         {isfile}            = ''           % Boundary condition input file (inp/json)
 
                 opts.obsFilePath        {isfile}            = ''           % Obstruction input file (inp/json)
-                opts.obsIDs             {mustBeText}        = ''           % Obstruction IDs, multiple allowed
+                opts.obsIDs             {mustBeTextScalar}  = ''           % Obstruction ID
 
                 opts.LOGMODE (1,1)      Session.LogMode     = Session.LogMode.LOGTOCONSOLEONLY
                 opts.sessionName        {isStringScalar}    = ""           % Session name
@@ -98,13 +98,13 @@ classdef InputSet
                 obj.geometry = Geometry(opts.geometryFilePath, opts.geometryID);
                 obj.bc = BoundaryConditions(opts.bcFilePath, obj.geometry);
 
-                % If obstructions are specified, add them to obs property as an array of Obstruction objects
+                % If obstructions are specified, add them to obs property
                 if ~isempty(opts.obsIDs) && ~isempty(opts.obsFilePath)
-                    for idx = 1:length(opts.obsIDs)
-                        obsID = opts.obsIDs{idx};
-                        obs(idx) = Obstruction(opts.obsFilePath, obsID);
-                    end
-                    obj.obs = obs;
+                    %for idx = 1:length(opts.obsIDs)
+                    %    obsID = opts.obsIDs{idx};
+                    %    obs(idx) = Obstruction(opts.obsFilePath, obsID);
+                    %end
+                    obj.obs = Obstruction(opts.obsFilePath, opts.obsIDs);
                 end
             catch ME
                 getReport(ME);

@@ -9,11 +9,15 @@ classdef DRYWAKEWIDTH
     %
     % Models:
     %
-    % - EMPIRICAL     — Emperically determined wake width as a function of wake boiling number. Data was gathered in MFVAL large obstruction   
+    % - EMPIRICAL     — Emperically determined wake width as a function of wake boiling number. Data was gathered in MFVAL large obstruction  
+    % - TWOTRACK      — Assumes dry wake width is equal to width of hydrodynamic wake (wake track wall)
+    %
+    
     
 
     enumeration
         EMPIRICAL          % Empirical wake width model
+        TWOTRACK           % Two-track wake width model
         
     end
 end

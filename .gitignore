@@ -7,9 +7,7 @@
 outputs/
 
 # Local sandbox content
-/sandbox/*
-!/sandbox/*.md
-!/sandbox/*_default.m
+
 
 # Generated Sphinx documentation
 /docs/build/

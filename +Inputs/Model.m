@@ -157,7 +157,8 @@ classdef Model < Inputs.Input
         
         OBSWSPLIT        (1,1) double  {mustBeNonnegative}                 = 0.5                             % Ratio of mass incipient on the obstruction that travels into the wake
         WAKEWIDTH        (1,1) InputEnums.WAKEWIDTH                        = 'OBSWIDTH'                      % Wake track width
-        DRYWAKEWIDTH     (1,1) InputEnums.DRYWAKEWIDTH                     = 'EMPIRICAL'                     % Dry wake width model 
+        DRYWAKEWIDTH     (1,1) InputEnums.DRYWAKEWIDTH                     = 'TWOTRACK'                      % Dry wake width model
+        WLDRY            (1,1) double  {mustBeNonnegative}                 = 1E-4                            % Film mass flow rate per unit perimter that dryout occurs at
 
         % Wall heat transfer models
         WALLSHAPE  (1,1) InputEnums.WALLSHAPE                              = 'PLANAR'                        % Wall Geometry shape, either 'PLANAR' or 'CYLINDRICAL'
