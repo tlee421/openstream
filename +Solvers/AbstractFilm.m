@@ -329,10 +329,10 @@ classdef (Abstract) AbstractFilm < Solvers.AbstractField
             rho_ls = absfilm.fluid.RHOF;                                   % Saturated liquid mass density
             mu_ls = absfilm.fluid.MUF;                                     % Saturated liquid viscosity
             nu_ls = mu_ls./rho_ls;                                         % Saturated liquid kinematic viscosity
-            tau_w = abs(absfilm.FWALL(zIdx));                                   % Wall sheat stress
+            tau_w = abs(absfilm.FWALL(zIdx));                              % Wall sheat stress
             u_star = (tau_w/rho_ls).^(0.5);                                % Friction velocity
 
-            thick = yplus./u_star.*nu_ls;                     % Converted thickness [m]
+            thick = yplus./u_star.*nu_ls;                                  % Converted thickness [m]
         end
 
         function Cv = CV(absfilm,zIdx)

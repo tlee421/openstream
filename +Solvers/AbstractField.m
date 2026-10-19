@@ -290,33 +290,58 @@ classdef (Abstract) AbstractField < matlab.mixin.Copyable
                                 %Determine ratio of obs perim to wall perim
                                 perimRatio = obsPerim/wallPerim;
 
-                                % source value
-                                srcVal = srcObj(i).(propNames{j})(end,:);
-
                                 % Split srcVal at wallID to 2
                                 % ex. if wallID ==1 , targetVal(:,[1,2])
                                 % will correspond to srcVal(:,1)
-                                if propNames{j} == 'W' 
-                                    %Scalar value for how much mass incipient on the obstruction travels into wake
-                                    massSplit = srcObj.inputSet.model.OBSWSPLIT;
-                                    %Ratio of mass that enters wake to total mass
-                                    wakeMassRatio= massSplit * perimRatio;
-                                    %Create array of ratios of mass in each track to total mass on wall
-                                    massSplitRatios= [1-wakeMassRatio,wakeMassRatio];
-                                    %Multiply incoming total mass by split ratios to determine mass in each track
-                                    targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2).*massSplitRatios, srcVal(:,wallID+1:end)];
-                                elseif propNames{j} == 'U'
-                                    %Scale velocity value according to equilibriums model assumption (tau_i = tau_w)
-                                    %This is not meant to be exact but, rather to initialize the velocity post obs to a more representative value than the pre obs velocity
+                                srcVal = srcObj(i).(propNames{j})(end,:);
 
-                                    %Ratio of volumetric flowrates post and pre obs
-                                    q_ratio = wakeMassRatio * wallPerim/wakeWidth; 
-                                    % Scale velocity relative to change in volumetric flow rate based on equilibriums assumption
-                                    v_ratio = q_ratio ^ (1/2);
-                                    %Store as array of multipliers, assume free stream velocity is unchanged
-                                    v_ratios = [1 , v_ratio];
-                                    %Multiply incoming velocities by ratios to determine initial velocity in each track
-                                    targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2).*v_ratios, srcVal(:,wallID+1:end)];
+                                %First check if the object we are copying is film, if so we will apply obstruction closure relations 
+                                if isa(srcObj, 'Solvers.ThreeField.Film')
+                                    if propNames{j} == 'W' 
+                                        %Closure relations for mass division at the obstruction
+                                        switch srcObj.inputSet.model.OBSWSPLIT
+                                            case InputEnums.OBSWSPLIT.SCALAR
+                                            %Assume mass split at obstruction is a scalar value
+                                            massSplit = srcObj.inputSet.model.OBSWSPLITSCALAR;      %Assign scalar value for ratio of incipient mass that enters wake
+    
+                                            case InputEnums.OBSWSPLIT.BASEFILM
+                                            %Assume all base film travels into the wake with assumed Nusselt velocity profile. Use BASEYPLUS to set cutoff for where basefilm ends. 
+                                            film = srcObj;                                      %Film object for previous solution
+                                            model = srcObj.inputSet.model;                      %model object for previous solution
+                                            yplusBase = model.BASEYPLUS;                        % Y plus value base film is assumed to end at
+                                            baseThick_array = film.YPLUS2THICK(yplusBase);      % Array of base film thickness's for last simulation
+                                            baseThick = baseThick_array(end,wallID);            % Base film thickness at end of the last solution for the wall with the obs on it 
+    
+                                            thick_array = film.THICK;                           %Film thickness's of last solution
+                                            thick = thick_array(end,wallID);                    %Film thickness at end of last soluation for the wall with the obs on it
+
+                                            massSplit = baseThick/thick;                        % Simple mass division model where film is assumed to have equal velocity throughout. 
+                                        end
+                                        %Ratio of mass that enters wake to total mass
+                                        wakeMassRatio= massSplit * perimRatio;
+                                        %Create array of ratios of mass in each track to total mass on wall
+                                        massSplitRatios= [1-wakeMassRatio,wakeMassRatio];
+                                        %Multiply incoming total mass by split ratios to determine mass in each track
+                                        targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2).*massSplitRatios, srcVal(:,wallID+1:end)];
+                                    elseif propNames{j} == 'U'
+                                        %Scale velocity value according to equilibriums model assumption (tau_i = tau_w)
+                                        %This is not meant to be exact but, rather to initialize the velocity post obs to a more representative value than the pre obs velocity
+    
+                                        %Ratio of volumetric flowrates post and pre obs
+                                        q_ratio = wakeMassRatio * wallPerim/wakeWidth; 
+                                        % Scale velocity relative to change in volumetric flow rate based on equilibriums assumption
+                                        v_ratio = q_ratio ^ (1/2);
+                                        %Store as array of multipliers, assume free stream velocity is unchanged
+                                        v_ratios = [1 , v_ratio];
+                                        %Multiply incoming velocities by ratios to determine initial velocity in each track
+                                        targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2).*v_ratios, srcVal(:,wallID+1:end)];
+
+                                     %If the property isnt mass or velocity then copy as usual without closure relation 
+                                     else
+                                        targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2), srcVal(:,wallID+1:end)];
+                                    end
+
+                                %if its not a film then copy as usual without closure relation
                                 else
                                     targetVal = [srcVal(:,1:wallID-1), repmat(srcVal(:,wallID),1,2), srcVal(:,wallID+1:end)];
                                 end

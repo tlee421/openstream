@@ -155,7 +155,8 @@ classdef Model < Inputs.Input
 
         % Obstruction solver models
         
-        OBSWSPLIT        (1,1) double  {mustBeNonnegative}                 = 0.5                             % Ratio of mass incipient on the obstruction that travels into the wake
+        OBSWSPLIT        (1,1) InputEnums.OBSWSPLIT                        = 'SCALAR'                        % Mass division at obstruction closure model
+        OBSWSPLITSCALAR  (1,1) double  {mustBeNonnegative}                 = 0.5                             % Ratio of mass incipient on the obstruction that travels into the wake
         WAKEWIDTH        (1,1) InputEnums.WAKEWIDTH                        = 'OBSWIDTH'                      % Wake track width
         DRYWAKEWIDTH     (1,1) InputEnums.DRYWAKEWIDTH                     = 'TWOTRACK'                      % Dry wake width model
         WLDRY            (1,1) double  {mustBeNonnegative}                 = 1E-4                            % Film mass flow rate per unit perimter that dryout occurs at

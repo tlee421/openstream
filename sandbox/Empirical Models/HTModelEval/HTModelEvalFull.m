@@ -65,7 +65,9 @@ load("C:\Users\tlee\OneDrive - UW-Madison\Documents\01_Research\02_MFVAL\Data Pr
 k_film  = fluid.KF;         % [W/m-K] Thermal conductivity of saturated liquid
 k_vapor = fluid.KG;         % [W/m-K] Thermal conductivity of saturated vapor
 rho_f   = fluid.RHOF;       % [kg/m^3] Density of saturated liquid
+rho_v   = fluid.RHOG;       % [kg/m^3] Density of saturated vapor
 mu_f    = fluid.MUF;        % [Pa-s] Dynamic viscosity of saturated liquid
+mu_v    = fluid.MUG;        % [Pa-s] Dynamic viscosity of saturated vapor
 nu_f    = mu_f/rho_f;       % [m^2/s] Kinematic viscosity of saturated liquid
 PR_f    = fluid.PRANDTLF;   % [-] Liquid Prandtl number
 PR_v    = fluid.PRANDTLG;   % [-] Vapor Prandtl number
@@ -84,12 +86,27 @@ x_obs = L - L_obs;          % [m] Distance from obstruction pin to channel EXIT 
 
 % Base Liquid Film Thickness via Law of the Wall (y+ = 5 viscous sublayer assumption)
 yplus        = 5;                                                           
-T.u_star     = (T.tau_w / rho_f).^(0.5);                                    % [m/s] Friction velocity from wall shear stress
+T.u_star     = (T.tau_w / rho_f).^(0.5);                                   % [m/s] Friction velocity from wall shear stress
 T.base_thick = yplus * (T.u_star).^(-1) * nu_f;                            % [m] Calculated base film thickness
 
 % Baseline Convective Heat Transfer Coefficients (HTC)
 T.htc_wet    = k_film * (T.base_thick).^(-1);                               % [W/m^2-K] Wet wall liquid film HTC
 T.htc_dry    = k_vapor / D_h * 0.023 * (T.Re_v).^0.8 * PR_v^0.4;            % [W/m^2-K] Dry wake vapor core HTC (Dittus-Boelter)
+
+% --- LOCAL QUALITY & MIST FLOW CORRELATION CALCULATION ---
+mdot_total = T.G * A_c;                                                     % [kg/s] Total mass flow rate
+T.x_local  = T.x_in + T.Q_heater ./ (mdot_total .* h_fg);                   % [-] Local thermodynamic vapor quality
+
+% 1. Homogenous Reynolds Number (Re_H) at obs
+T.Re_H = (T.G * D_h / mu_v) .* (T.x_local + (rho_v / rho_f) .* (1 - T.x_local));
+
+% 2. Groeneveld Y-Factor at obs 
+T.Y_factor = 1 - 0.1 * (((rho_f / rho_v) - 1) .* (1 - T.x_local)).^0.4;
+
+% 3. Refrigerant Mist Flow Heat Transfer Coefficient (h_mist)
+%T.htc_mist = 0.0117 * (T.Re_H).^0.79 .* (PR_v)^1.06 .* (T.Y_factor).^(-1.83) * (k_vapor / D_h);   %Wojtan and Thome mist flow correlation (for refrigerants R22 and R410A)
+T.htc_mist = k_vapor / D_h * 0.023 * (T.Re_H).^0.8 * PR_v^0.4;                                     % Dougall-Rohsenow mist flow correlation (original)
+%T.htc_mist = k_vapor / D_h * 0.00327 * (T.Re_H).^0.901 .* PR_v.^1.32 .* (T.Y_factor).^-1.5;              %Groeneveld mist flow correlation (for high pressure steam)
 
 % -------------------------------------------------------------------------
 % 2. PARSE MEASURED DRY WAKE WIDTHS & APPLY OUTLIER FILTERS
@@ -200,7 +217,7 @@ for i = 1:N_rows
     
     for j = 1:N_wfree
         if isnan(w_free_i(j))
-            T_center_row(j) = NaN; % Bypass computationally heavy solver if point is filtered
+            T_center_row(j) = NaN; % Bypass computationally heavy solver if point is filtered out
         else
             [~, ~, ~, T_center_row(j), ~, ~, ~, ~, ~, ~] = ftoglass_ann_optim( ...
                 M, N, W_HT, H_wall, k_wall, x_obs, ...
@@ -892,6 +909,7 @@ function plotHTCParametricCorrelations(T, fluid, D_h)
     
     % Consistent baseline color across all subplots
     c_db = [0.40 0.40 0.40]; % Dark Gray for Dittus-Boelter Baseline
+    c_mist = [0.85 0.15 0.15]; % Crimson for Refrigerant Mist Flow Correlation
     
     % Mask out NaN rows resulting from outlier filtering
     valid = ~isnan(T.htc_dry_opt);
@@ -899,6 +917,8 @@ function plotHTCParametricCorrelations(T, fluid, D_h)
     % 1. h_dry vs Re_v
     nexttile;
     semilogx(T.Re_v(valid), T.htc_dry_opt(valid), 'o', 'Color', c1, 'MarkerFaceColor', c1, 'DisplayName', 'Optimized $h_{\mathrm{dry}}$');
+    %hold on
+    %semilogx(T.Re_v(valid), T.htc_mist(valid), '^', 'Color', c_mist, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Mist Flow Correlation');
     hold on;
     semilogx(T.Re_v(valid), T.htc_dry(valid), 's', 'Color', c_db, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Dittus-Boelter Baseline');
     xlabel('Vapor Reynolds Number, $\mathrm{Re}_v$', 'Interpreter', 'latex', 'FontSize', 11);
@@ -910,6 +930,8 @@ function plotHTCParametricCorrelations(T, fluid, D_h)
     % 2. h_dry vs Core Weber Number
     nexttile;
     plot(T.We_c(valid), T.htc_dry_opt(valid), 'o', 'Color', c2, 'MarkerFaceColor', c2, 'DisplayName', 'Optimized $h_{\mathrm{dry}}$');
+    %hold on
+    %plot(T.We_c(valid), T.htc_mist(valid), '^', 'Color', c_mist, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Mist Flow Correlation');
     hold on;
     plot(T.We_c(valid), T.htc_dry(valid), 's', 'Color', c_db, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Dittus-Boelter Baseline');
     xlabel('Core Weber Number, $\mathrm{We_c}$', 'Interpreter', 'latex', 'FontSize', 11);
@@ -923,6 +945,8 @@ function plotHTCParametricCorrelations(T, fluid, D_h)
     plot(T.q_eff(valid) / 1000, T.htc_dry_opt(valid), 'o', 'Color', c3, 'MarkerFaceColor', c3, 'DisplayName', 'Optimized $h_{\mathrm{dry}}$');
     hold on;
     plot(T.q_eff(valid) / 1000, T.htc_dry(valid), 's', 'Color', c_db, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Dittus-Boelter Baseline');
+    %hold on
+    %plot(T.q_eff(valid) / 1000, T.htc_mist(valid), '^', 'Color', c_mist, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Mist Flow Correlation');
     xlabel('Effective Heat Flux, $q''_{\mathrm{eff}}$ ($\mathrm{kW/m}^2$)', 'Interpreter', 'latex', 'FontSize', 11);
     ylabel('$h_{\mathrm{dry}}$ ($\mathrm{W/m}^2\mathrm{K}$)', 'Interpreter', 'latex', 'FontSize', 11);
     title('\textbf{3. vs. Heat Flux $q''_{\mathrm{eff}}$}', 'Interpreter', 'latex', 'FontSize', 12);
@@ -934,6 +958,8 @@ function plotHTCParametricCorrelations(T, fluid, D_h)
     plot(T.x_in(valid), T.htc_dry_opt(valid), 'o', 'Color', c4, 'MarkerFaceColor', c4, 'DisplayName', 'Optimized $h_{\mathrm{dry}}$');
     hold on;
     plot(T.x_in(valid), T.htc_dry(valid), 's', 'Color', c_db, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Dittus-Boelter Baseline');
+    %hold on
+    %plot(T.x_in(valid), T.htc_mist(valid), '^', 'Color', c_mist, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Mist Flow Correlation');
     xlabel('Inlet Quality, $x_{\mathrm{in}}$', 'Interpreter', 'latex', 'FontSize', 11);
     ylabel('$h_{\mathrm{dry}}$ ($\mathrm{W/m}^2\mathrm{K}$)', 'Interpreter', 'latex', 'FontSize', 11);
     title('\textbf{4. vs. Inlet Quality $x_{\mathrm{in}}$}', 'Interpreter', 'latex', 'FontSize', 12);
@@ -945,6 +971,8 @@ function plotHTCParametricCorrelations(T, fluid, D_h)
     plot(T.pi_e(valid), T.htc_dry_opt(valid), 'o', 'Color', c5, 'MarkerFaceColor', c5, 'DisplayName', 'Optimized $h_{\mathrm{dry}}$');
     hold on;
     plot(T.pi_e(valid), T.htc_dry(valid), 's', 'Color', c_db, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Dittus-Boelter Baseline');
+    %hold on
+    %plot(T.pi_e(valid), T.htc_mist(valid), '^', 'Color', c_mist, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Mist Flow Correlation');
     xlabel('Okawa Entrainment Number, $\mathrm{pi}_e$', 'Interpreter', 'latex', 'FontSize', 11);
     ylabel('$h_{\mathrm{dry}}$ ($\mathrm{W/m}^2\mathrm{K}$)', 'Interpreter', 'latex', 'FontSize', 11);
     title('\textbf{5. vs. Okawa Entrainment Number $\mathrm{pi}_e$}', 'Interpreter', 'latex', 'FontSize', 12);
@@ -956,6 +984,8 @@ function plotHTCParametricCorrelations(T, fluid, D_h)
     plot(T.delta(valid), T.htc_dry_opt(valid), 'o', 'Color', c6, 'MarkerFaceColor', c6, 'DisplayName', 'Optimized $h_{\mathrm{dry}}$');
     hold on;
     plot(T.delta(valid), T.htc_dry(valid), 's', 'Color', c_db, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Dittus-Boelter Baseline');
+    %hold on
+    %plot(T.delta(valid), T.htc_mist(valid), '^', 'Color', c_mist, 'LineWidth', 1.2, 'MarkerFaceColor', 'none', 'DisplayName', 'Mist Flow Correlation');
     xlabel('Pre-Obstruction Measured Film Thickness, $\delta$ (m)', 'Interpreter', 'latex', 'FontSize', 11);
     ylabel('$h_{\mathrm{dry}}$ ($\mathrm{W/m}^2\mathrm{K}$)', 'Interpreter', 'latex', 'FontSize', 11);
     title('\textbf{6. vs. Pre-Obstruction Film Thickness $\delta$}', 'Interpreter', 'latex', 'FontSize', 12);
@@ -985,7 +1015,7 @@ function T = computeEntrainedFraction(T, fluid, A_c)
 end
 
 % -------------------------------------------------------------------------
-% PLOT: Droplet Entrainment Correlations against Dry HTC & Ratio
+% PLOT: Droplet Entrainment Correlations against Dry HTC
 % -------------------------------------------------------------------------
 function plotEntrainmentCorrelations(T)
     figure('Name', 'HTC Droplet Entrainment Correlations', 'Color', 'w', 'Position', [150, 150, 1000, 450]);
@@ -993,7 +1023,7 @@ function plotEntrainmentCorrelations(T)
     
     valid = ~isnan(T.pi_e) & ~isinf(T.pi_e) & (T.pi_e >= 0) & ~isnan(T.htc_dry_opt);
     
-    % Panel 1: Optimized h_dry vs Entrained Fraction E
+    % Panel 1: Optimized h_dry vs non dimensional entrainment number pi_e
     nexttile;
     plot(T.pi_e(valid), T.htc_dry_opt(valid), 'o', 'Color', [0 0.45 0.74], ...
         'MarkerFaceColor', [0 0.45 0.74], 'MarkerSize', 7);
@@ -1013,7 +1043,7 @@ function plotEntrainmentCorrelations(T)
     set(gca, 'TickLabelInterpreter', 'latex', 'FontSize', 10);
     grid on;
     
-    % Panel 2: HTC Ratio (h_dry_opt / h_wet) vs Entrained Fraction E
+    % Panel 2: HTC Ratio (h_dry_opt / h_wet) vs pi_e
     nexttile;
     ratio_h = T.htc_dry_opt ./ T.htc_dry;
     plot(T.pi_e(valid), ratio_h(valid), 's', 'Color', [0.85 0.33 0.10], ...
