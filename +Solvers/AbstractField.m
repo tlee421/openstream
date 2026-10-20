@@ -315,7 +315,10 @@ classdef (Abstract) AbstractField < matlab.mixin.Copyable
                                             thick_array = film.THICK;                           %Film thickness's of last solution
                                             thick = thick_array(end,wallID);                    %Film thickness at end of last soluation for the wall with the obs on it
 
-                                            massSplit = baseThick/thick;                        % Simple mass division model where film is assumed to have equal velocity throughout. 
+                                            eta = baseThick/thick;                              % Ratio of basefilm thickness to film thickness
+
+                                            %massSplit = (3*eta^2 - eta^3)/2;                    % Ratio of mass in basefilm to totall mass according to Nusselt velocity profile
+                                            massSplit = eta;
                                         end
                                         %Ratio of mass that enters wake to total mass
                                         wakeMassRatio= massSplit * perimRatio;
